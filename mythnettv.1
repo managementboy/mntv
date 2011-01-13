@@ -1,0 +1,133 @@
+.TH "MYTHNETTV" "1" "24 August 2008" "" ""
+.SH "NAME"
+mythnettv \- RSS video aggregator for MythTV
+.SH "DESCRIPTION"
+ \fBmythnettv\fP is a RSS video aggregtor for MythTV.  It take 
+ downloads video feeds and places them in the recording directory
+ in MythTV, then makes them accessible with the rest of your 
+ recordings.
+
+ This implementation has advantages over other RSS readers for 
+ MythTV in that it:
+
+ - ignores the content of the post -- it's all about the video 
+   files
+ - queues downloads, instead of making them when feeds are added, 
+   or new shows are posted (this stops you from running out of 
+   disk, or having a huge show backlog)
+
+.SH "USAGE"
+
+ (manual usage)
+  url <url> <title> : to download an RSS feed and load the shows
+                      from it into the TODO list. The title is
+                      as the show title in the MythTV user
+                      interface
+  file <url> <title>: to do the same, but from a file, with a show
+                      title like url above
+  download <num>    : to download that number of shows from the
+                      TODO list. We download some of the oldest
+                      first, and then grab some of the newest as
+                      well.
+  download <num> <title filter>
+                    : the same as above, but filter to only 
+                      download shows with a title exactly 
+                      matching the specified filter
+  download <num> <title filter> <subtitle filter>
+                    : the same as above, but with a regexp title
+                      filter as well
+  download <num> <title filter> <subtitle filter> justone
+                    : the same as above, but download just one
+                      and then mark all other matches as read
+
+  cleartodo         : permanently remove all items from the TODO
+                      list
+  markread <num>    : interactively mark some of the oldest <num>
+                      shows as already downloaded and imported
+  markread <num> <title filter>
+                    : the same as above, but filter to only mark
+                      shows with a title exactly matching the
+                      specified filter
+  markread <num> <title filter> <subtitle filter>
+                    : the same as above, but with a regexp title
+                      filter as well
+
+ (handy stuff)
+  todoremote        : add a remote URL to the TODO list. This will
+                      prompt for needed information about the
+                      video, and set the date of the program to
+                      now
+  todoremote <url> <title> <subtitle> <description>
+                    : the same as above, but don't prompt for
+                      anything
+  importremote      : download and immediately import the named
+                      URL. Will prompt for needed information
+  importremote <url> <title> <subtitle> <description>
+                    : the same as above, but don't prompt for
+                      anything
+  importtorrent <url> <title> <subtitle> <description>
+                    : the same as above, but force the URL to be
+                      treated as a torrent. This is useful when
+                      MythNetTV doesn't automatically detect
+                      that the URL is to a torrent file.
+  importlocal <file>: import the named file, using the title, 
+                      subtitle and description from the command
+                      line. The file will be left on disk.
+  importlocal <file>: import the named file. The file will be
+                      left on disk. Will prompt for needed
+                      information
+  importmanylocal <path> <regexp> <title>:
+                      import all the files from path matching
+                      regexp. title is use as the title for the
+                      program, and the filename is used as the
+                      subtitle
+
+ (subscription management)
+  subscribe <url> <title>
+                    : subscribe to a URL, and specify the show 
+                      title
+  list              : list subscriptions
+  unsubscribe <url> : unsubscribe from a URL
+  update            : add new programs from subscribed URLs to the
+                      TODO list
+  archive <title> <path>
+                    : archive all programs with this title to the
+                      specified path. This is useful for shows you
+                      download and import, but want to build a
+                      non-MythTV archive of as well
+  http_proxy <url regexp> <proxy>
+                    : you can choose to use a HTTP proxy for URL
+                      requests matching a given regular expression.
+                      Use this command to define such an entry. This
+                      might be handy if some of the programs you
+                      wish to subscribe to are only accessible over
+                      a VPN.
+  http_proxy <url regexp> <proxy> <budget mb>
+                    : the same as above, but you can specify the
+                      maximum number of megabytes to download via
+                      the proxy in a given day. To see proxy usage
+                      information, use the proxyusage command.
+
+ (reporting)
+  statistics        : show some simple statistics about MythNetTV
+  log               : dump the current internal log entries
+  nextdownload <num>
+                    : if you executed download <num>, what would
+                      be downloaded?
+  proxyusage        : print a simple report on HTTP proxy usage over
+                      the last seven days
+
+ (debugging)
+   videodir         : show where MythNetTV thinks it should be
+                      placing video files
+   explainvideodir  : verbosely explain why that video directory was
+                      selected. This can help debug when the wrong
+                      video directory is being used, or no video
+                      directory at all is found
+
+.SH "CONTACT DETAILS"
+Information about \fBmythnettv\fP is posted to \fBhttp://www.stillhq.com/mythtv/mythnettv/\fP regularly. There is a users mailing list at \fBhttp://lists.stillhq.com/listinfo.cgi/mythnettv-stillhq.com\fP
+
+.SH "AUTHOR"
+\fBmythnettv\fP is by Michael Still <mikal@stillhq.com>
+

@@ -1,0 +1,42 @@
+diff -Naur mythnettv-release-3/database.py mythnettv-david/database.py
+--- mythnettv-release-3/database.py     2008-07-13 23:34:08.000000000 -0500
++++ mythnettv-david/database.py 2008-07-21 16:56:38.000000000 -0500
+@@ -8,6 +8,8 @@
+ import os
+ import sys
+
++from program import MythNetTvProgram
++
+ CURRENT_SCHEMA='13'
+
+ class MythNetTvDatabase:
+@@ -152,7 +154,7 @@
+         for item in parsed:
+           parsed_ints.append(int(item))
+         date = datetime.datetime(*parsed_ints[0:5])
+-        program = IpTvProgram(self)
++        program = MythNetTvProgram(self)
+         program.Load(row['guid'])
+         program.SetDate(date)
+         program.Store()
+@@ -161,7 +163,7 @@
+     # Otherwise, just set it to now and get on with our lives
+     for row in self.GetRows('select guid from mythnettv_programs '
+                             'where date is null;'):
+-      program = IpTvProgram(self)
++      program = MythNetTvProgram(self)
+       program.Load(row['guid'])
+       program.SetDate(datetime.datetime.now())
+       program.Store()
+diff -Naur mythnettv-release-3/mythnettv mythnettv-david/mythnettv
+--- mythnettv-release-3/mythnettv       2008-07-13 23:34:08.000000000 -0500
++++ mythnettv-david/mythnettv   2008-07-21 17:02:33.000000000 -0500
+@@ -10,7 +10,7 @@
+ import commands
+ import datetime
+ import feedparser
+-import gflags
++#import gflags
+ import os
+ import re
+ import shutil

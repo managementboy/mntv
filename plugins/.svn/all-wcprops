@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/mythtv/mythnettv/svn/!svn/ver/287/trunk/plugins
+END
+runtests.sh
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/mythtv/mythnettv/svn/!svn/ver/276/trunk/plugins/runtests.sh
+END
+bittorrent_test.py
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/mythtv/mythnettv/svn/!svn/ver/287/trunk/plugins/bittorrent_test.py
+END
+bittorrent.py
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/mythtv/mythnettv/svn/!svn/ver/286/trunk/plugins/bittorrent.py
+END
+__init__.py
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/mythtv/mythnettv/svn/!svn/ver/260/trunk/plugins/__init__.py
+END

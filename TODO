@@ -1,0 +1,10 @@
+- Check for uniqueness of destination video file before moving to video directory
+- Fix dummy = 'blah'
+- Unsubscribe doesn't remove outstanding shows from todo list
+- Support HTTP proxies per program, to handle VPN-like connections
+- Provide a way to remove archive entries
+- Provide a way to remove proxy entries
+- Convert proxyhandler.HttpHandler to a file like object which logs usage
+- Add verbose output to all commands
+- Update man pages automatically
+- Include flags in man pages

@@ -1,0 +1,27 @@
+*** database.py~	2008-08-25 17:15:45.000000000 -0700
+--- database.py	2008-08-25 17:40:29.000000000 -0700
+***************
+*** 57,64 ****
+        # Load the text configuration file
+        self.config_values = {}
+        home = os.environ.get('HOME')
+        try:
+!         config = open(home + '/.mythtv/mysql.txt')
+          for line in config.readlines():
+            if not line.startswith('#') and len(line) > 5:
+              (key, value) = line.rstrip('\n').split('=')
+--- 57,70 ----
+        # Load the text configuration file
+        self.config_values = {}
+        home = os.environ.get('HOME')
++       if os.path.exists(home+'/.mythtv/mysql.txt'):
++ 	dbinfo = home+'/.mythtv/mysql.txt'
++       elif os.path.exists('/usr/share/mythtv/mysql.txt'):
++ 	dbinfo = '/usr/share/mythtv/mysql.txt'
++       else:
++ 	dbinfo = '/etc/mythtv/mysql.txt'
+        try:
+!         config = open(dbinfo)
+          for line in config.readlines():
+            if not line.startswith('#') and len(line) > 5:
+              (key, value) = line.rstrip('\n').split('=')
