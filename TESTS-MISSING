@@ -1,0 +1,57 @@
+The following commands have no unit testing coverage at all. Other commands
+are at least partially tested, even if that testing isn't complete yet.
+
+
+(manual usage)
+  file <url> <title>: to do the same, but from a file, with a show
+                      title like url above
+
+  cleartodo         : permanently remove all items from the TODO
+                      list
+  markread <num>    : interactively mark some of the oldest <num>
+                      shows as already downloaded and imported
+  markread <num> <title filter>
+                    : the same as above, but filter to only mark
+                      shows with a title exactly matching the
+                      specified filter
+  markread <num> <title filter> <subtitle filter>
+                    : the same as above, but with a regexp title
+                      filter as well
+
+(handy stuff)
+  todoremote        : add a remote URL to the TODO list. This will
+                      prompt for needed information about the
+                      video, and set the date of the program to
+                      now
+  todoremote <url> <title> <subtitle> <description>
+                    : the same as above, but don't prompt for
+                      anything
+  importtorrent <url> <title> <subtitle> <description>
+                    : the same as above, but force the URL to be
+                      treated as a torrent. This is useful when
+                      MythNetTV doesn't automatically detect
+                      that the URL is to a torrent file.
+  importlocal <file>: import the named file, using the title, 
+                      subtitle and description from the command
+                      line. The file will be left on disk.
+  importlocal <file>: import the named file. The file will be
+                      left on disk. Will prompt for needed
+                      information
+  importmanylocal <path> <regexp> <title>:
+                      import all the files from path matching
+                      regexp. title is use as the title for the
+                      program, and the filename is used as the
+                      subtitle
+
+(subscription management)
+  list              : list subscriptions
+  unsubscribe <url> : unsubscribe from a URL
+  archive <title> <path>
+                    : archive all programs with this title to the
+                      specified path. This is useful for shows you
+                      download and import, but want to build a
+                      non-MythTV archive of as well
+
+(reporting)
+  statistics        : show some simple statistics about MythNetTV
+  log               : dump the current internal log entries

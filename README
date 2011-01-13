@@ -1,0 +1,95 @@
+I've been recently wanting a video blog aggregator which integrates with
+MythTV. Specifically, I wanted the videos to appear as recordings. I've
+had a horrible script for that for a few months, but ended up cleaning
+it up when it occurred to me that Akimbo (http://www.akimbo.com) is just
+a per user RSS feed, and something a lot like MythTV.
+
+So, I wrote MythNetTV. It takes RSS feeds, imports the entries in the
+feed and builds a TODO list. It then downloads shows and imports them
+into the MythTV recordings menu.
+
+This implementation has advantages over other RSS readers for MythTV in that
+it:
+
+ - ignores the content of the post -- it's all about the video files
+ - queues downloads, instead of making them when feeds are added, or new shows
+   are posted (this stops you from running out of disk, or having a huge show
+   backlog)
+
+The code has now been used by a variety of people, but its possible there are
+still bugs. If you want to give it a try, please take good backups. You can 
+find the code here:
+
+http://www.stillhq.com/mythtv/mythnettv/
+
+This file has several sections:
+ - Getting started
+ - Running from a remote machine
+
+
+Getting started
+===============
+
+Before use, you need to make a temporary data directory in your current
+working directory:
+
+$ mkdir data
+
+You also need to install Mark Pilgrim's Universal Feed Parser from
+http://www.feedparser.org. On Debian or Ubuntu you can install it like this:
+
+$ sudo apt-get install python-feedparser
+
+You Python ctypes support. On Debian / Ubuntu, its as simple as:
+
+$ sudo apt-get install python-ctypes
+
+You also need the Python MySQL module:
+
+$ sudo apt-get install python-mysqldb
+
+Finally, you need mplayer and mecoder:
+
+$ sudo apt-get install mplayer mencoder
+
+Using MythNetTv is simple. If you want MythNetTv to manage your
+subscriptions, then do something like:
+
+$ ./mythnettv subscribe \
+"http://video.google.com/videofeed?type=search&q=engedu&so=1&num=20&output=rss" \
+"Goole EngEdu"
+
+You can update the view of the feed (i.e. find new posts) with:
+
+$ ./mythnettv update
+
+And you can find out what you are subscribed to with:
+
+$ ./mythnettv list
+
+To download shows, just tell it how many:
+
+$ ./mythnettv download 10
+
+Will download 10 shows and import them into the MythTV recordings menu.
+
+You can also manually download an RSS feed just once, import local or remote
+videos, and get interesting statistics. Checkout the usage message for more
+information about those.
+
+Running from a remote machine
+=============================
+
+If you're not using MythNetTV on your master backend, then you'll need to
+tweak your MythTV database just a little. Let's assume I want to run on a 
+machine named maui. First I need to tell MythNetTV where to store imported
+programs. Log into your MySQL database execute this command:
+
+insert into settings (value, data, hostname) values("RecordFilePrefix", "/data/mythtv", "maui");
+
+The path will of course need to change to whereever your recordings are stored.
+At the moment MythNetTV assumes that the recordings directory is NFS mounted,
+so you'll need to set that up as well.
+
+Cheers,
+Mikal (mikal@stillhq.com)

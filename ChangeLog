@@ -1,0 +1,268 @@
+  - r292: Find orphan recording files, and a command to delete only the oldest recordings
+  - r290: Fix video unit test (exception changed)
+  - r289: Changed permissions of imported files to be RW for everyone. This was prompted by moving to MythBuntu and using a different user for MythTV than MythNetTV. Perhaps this should become a config option?
+  - r287: Fix plugin unit tests
+  - r284: Add COPYING.BSD file, which covers gflags only
+  - r282: Tweaks to transcode verbose flag and fix broken exception inheritance
+  - r280: Catch impossibly small files being created by transcoding, and fix some output capture bugs with transcodes
+  - r278, r279: Better handling of filenames with spaces in them
+  - r278: WMV3 needs transcoding
+  - r279: Handle downloads which create a directory with just one file in it
+  - r276: Cleaned up the draft download plugin interface, some unit tests for bittorrent download
+  - r274: Enable autoexpire on recordings
+  - r272: Added the unfail command
+  - r270: Fix single quote escaping in strings, and add unit tests for quote escaping
+  - r268: Release script now checks for updated version number
+  - r266: Fix release number
+  - r264: Add missing license files
+  - r262: Bug fixes for refactored bittorrent plugin
+  - r260: Refactor bittorrent support into its own plugin
+  - r258: Enforce sensible modes on recording files
+
+------ Unsorted ChangeLog entries above this line ------
+
+Release 6 -> Release 7:
+
+  Better testing:
+    - r232: Simple script to create the unit testing database
+
+  New features:
+    - r210: Allow users to override the default bittorrent upload rate
+    - r212: Provide more sync information when running in verbose mode
+    - r216: Add the markunread command
+    - r218: Make only one download attempt for a given show per 24 hour period
+    - r220: Change download interval to one hour, update last attempt time more frequently
+    - r222: Add --oldestfirst and --newestfirst flags, which alter NextDownloads behaviour
+    - r224: Add flag which forces downloads to run, even if they've failed recently
+    - r226: Don't mark a bittorrent download as complete just because the torrent file has been completely downloaded
+    - r234: Use reasonable defaults for mysql configuration if no config file can be found
+    - r236: Use reasonable defaults for mysql configuration if no config file can be found
+    - r238: Use reasonable defaults for mysql configuration if no config file can be found
+
+  Bug fixes:
+    - r206: Make the output of "video.py length" more friendly
+    - r208: Release man pages as well
+    - r214: Fix a bug introduced in r210 which broke bittorrent downloads
+    - r228: Fix a typo in the recordings_tool help text
+    - r230: Fix a typo in the recordings_tool help text
+    - r240: Reduce size of proxy name in the usage table to deal with key length limitations in MySQL
+    - r242: The schema for the channel table changed in MythTV 0.21
+    - r244: Fix typo
+    - r246: Suppress repeated warnings of DB default use
+    - r248: Bug fixes for linux.conf.au 2009 talk
+    - r250: Include test runner script in release, prepare ChangeLog for release
+
+Release 5 -> Release 6:
+  Better testing:
+  - r114: Unit tests for video.py
+  - r148: Updated unit test now that we create more tables
+  - r151: Start work on syndication unit tests
+  - r153: Unit test for bad syndication dates, as well as more flexiblity in
+    db connections needed for this unit test
+  - r157: Nicer unit test failure output, and refactor GetVideoDir() into the
+    utility module
+  - r181: Slightly improve syndication unit tests
+  - r183: Add flag parsing to unit tests, and fix some more flag name changes
+
+  Better documentation:
+  - r117: Added a man page for video.py -- I'm not 100% happy with its name
+    though
+
+  Bug fixes:
+  - r114: Fixed a bug where the new filename for video transcode could be the
+    same as the input filename, resulting in video corruption. This was found
+    with one of the new video.py unit tests
+  - r116: The logic for the --prompt flag was the wrong way around. Fixed.
+  - r119: Nicer download status messages
+  - r121: Handle 404s in feed updates better
+  - r129: Slight tweak to SVN submit script
+  - r131: More accurate tracking of proxy usage (update during download,
+    instead of just at the end)
+  - r137: Proxy budget being exceeded doesn't count as a failed download
+    attempt
+  - r143: Subscribe now renables inactive subscriptions
+  - r146: Add support to decimals to utility byte printer, fix a bug in the
+    check for video directories
+  - r155: Have users send problems to the mailing list, instead of me
+    personally
+  - r161: Don't throw exceptions for the videodir command line
+  - r167, 169: Display friendly sizes in records_tool output
+  - r171: Move verbose update arg into a flag
+  - r173: Add "-vo null" to mplayer invocation per Ryan Lutz. This improves
+    support on machines without X, and speeds up the identify operation
+  - r175: Import patch from Thomas Mashos which fixes subscription removal,
+    started work on syndication unit test improvements
+  - r177: Fix character escaping bug in show subtitles during import
+  - r179: Renamed --datadirdefault to --datadir. If set this will now change
+    your data directory, regardless of if there was a previous value set.
+  - r190: Recording_tool now prompts for deletes
+  - r192: Improved explainvideodir output
+  - r194: Don't crash in explainvideodir if there is no video directory
+  - r197: Order results by subtitle in recordings_tool output
+
+  New features:
+  - r115: Upgraded schema to version 15 to support http_proxies for
+    subscriptions. Added http_proxy command line, which allows you to use HTTP
+    proxies for specified URLs. Moved HTTP accesses to use the proxy code.
+  - r127: Bump schema to v17, and add proxy use tracking including the
+    "proxyusage" command
+  - r133: Allow daily budgets for proxy usage
+  - r115: Provide a user agent for HTTP requests, instead of just 
+    Python-urllib/1.17
+  - r117: Users will now be prompted to subscribe to an annoucements video
+    feed. This will happen exactly once. This behaviour may be disabled with
+    the --nopromptforannounce command line flag.
+  - r125: Add a full info dump command to video.py's command line interface
+  - r139: Bump schema to 19, and implement categories with the "category"
+    command
+  - r141: Implement recording group support, and clarify category support
+  - r151: Implement a helper (recordings_tool) for handling the MythTV
+    recordings table, this is useful for testing.
+  - r159: Add videodir and explainvideodir debugging commands, and update man
+    page
+  - r163: Add title list feature to recordings_tool
+  - r165: Include recording count in title list
+  - r185: Add the resetattempts command
+
+  Development changes:
+  - r123: Added a submit script to automate putting the revision number into
+    the ChangeLog
+  - r135: Tweak to new ChangeLog auto logging formatting
+
+Release 4 -> Release 5:
+  - There is now a users mailing list at
+    http://lists.stillhq.com/listinfo.cgi/mythnettv-stillhq.com
+  - Moved to a public SVN server at
+    http://www.stillhq.com/mythtv/mythnettv/svn/
+
+  - Added the 'justone' syntax to the download command
+  - Another try at using gflags. This means that all the command lines have
+    changed slightly.
+  - Moved the core of MythTV out of the user interface file.
+  - Started writing unit tests
+  - Changed user output code so that it doesn't insist on writing to stdout.
+    You can now write to other file descriptors, which makes things like unit
+    tests much easier to write.
+  - Added video/msvideo to the enclosure whitelist
+  - Added HTTP download progress information
+  - Added a flag which turns off the prompts for markread (--noprompt)
+  - Patches from Thomas Mashos
+    - Search ~/.mythtv/mysql.txt, /usr/share/mythtv/mysql.txt and
+      /etc/mythtv/mysql.txt in that order for MySQL connection information
+    - A manpage
+    - setup.py
+  - video.py now has a simple command line interface to let you query it
+	
+  - Fix update of inactive programs bug per
+    http://ubuntuforums.org/showpost.php?p=5580005&postcount=4
+  - Better DB error handling
+  - Included a COPYING file with the right version of the GPL (it was missing
+    before)
+  - Fixed a bug where programs would be downloaded more than once (found with
+    a unit test!)
+  - Started raising exceptions instead of just sys.exit(1). This should make
+    life easier for user interfaces in the future
+  - Default to using storage groups for storing recordings before falling back
+    to the RecordFilePrefix. This makes the behaviour: use a storage group
+    named "MythNetTV" if it exists; use the default storage group if it
+    exists; use the value of RecordFilePrefix.
+  - Transcode avc1 videos, because some need it
+  - Force ASCII encoding of title, subtitle, and all fields in the database
+    to get around feeds which use unicode which python / MySQL can't store
+    correctly
+  - If there is only one attachment to an item, and its not in our whitelist
+    of video formats, then warn the user that you're assuming its a video file
+    and then add it to the todo list
+  - Slight tweak to the signature of video.MythNetTvVideo.Transcode()
+  - Fix buf in RepairMissingDates which caused it to consistently crash
+  - Fix typo in date warning code
+  - Better handling of videos where the length of the video cannot be
+    determined by mplayer
+	
+Release 3 -> Release 4:
+  - Removed gflags because people found it hard to find
+  - Bug fix patch from David Linville applied
+    - Fixed broken imports caused by refactoring
+    - Transcode not needed for avc1 and m4v
+  - Another bug fix patch from David Linville applied
+    - Store filesize in the db
+  - Removed some namespace imports I am not a fan of
+  - Made verbosity optional for --update
+  - Small code cleanups
+  - Let the user know of repeated attempts to download a program
+  - Documented the need for bittornado for bittorrent to work
+  - Abandon downloading after 3 failed attempts (you can configure the number)
+  - Detect stuck bittorrent downloads
+	
+Release 2 -> Release 3:
+  - Started work on an RSS exporter for MythTV recordings
+  - DX50 doesn't need transcode
+  - Tweaked supported video mime types so "Tikibar TV" and "Ask a ninja" work
+  - First cut of Bittorrent support
+  - Schema upgrades
+  - Archive recordings as well as importing them
+  - Improved --list output
+  - Subtitle restrictions on download as well
+  - Make subscriptions inactive instead of deleting them (for unsubscribe)
+  - Better filename safening
+  - More markread options
+  - Refactored code to be more sane
+  - Don't archive things imported from the archive location
+  - Bulk import (--importmanylocal)
+	
+THINGS I NEED TO REIMPLEMENT BECAUSE OF MY ACCIDENTAL DELETE:
+  - Give up on downloads after 5 failed attempts
+
+Release 1 -> Release 2:
+  - Started working harder to ensure video filenames are unique once imported
+    into MythTV, I now prepend video files with epoch seconds at time of
+    import
+  - DIVX (not divx) doesn't need transcode, added. Check for the existance of
+    the video directory, and return an error if it needs creating.
+  - Handle storage groups, check for the existance of the data directory
+  - Updated docs
+  - Complained about the poor state of SWF support
+  - WMV support
+  - FLV support
+
+Beta 4 -> Release 1:
+  - Inital work on transcoding smaller files to something else
+  - Better error checking for MySQL configuration and accessibility
+  - Fixed bug where MythNetTV was unhappy if there were no channels configured
+    in the MySQL database
+  - Found, and hopefully fixed, a bug where program dates were not always being
+    tracked correctly. Also added a check to make sure this doesn't happen
+    again
+  - Added --markread, which lets you mark old shows as already downloaded
+
+Beta 3 -> Beta 4:
+  - Made --update more terse
+  - Made --update more liberal about what it considers to be a video,
+    specifically added video/quicktime and text/html (to work around the rather
+    broken http://www.mobuzztv.com/uk/rss/quicktime
+  - Added a filter option to --download to constrain it to only downloading 
+    shows with a specific title
+  - Added transcoding for mov files
+  - If there is a straggling import, and it causes as error, just skip it and
+    mark it as imported
+  - Don't reset transferred data statistic when we start downloading a show
+    again
+  - Started implementing moniker support for downloads
+  - Unsupported monikers will result in an attempt to download the URL using
+    mplayer (which works for RTSP and MMS at the least)
+
+Beta 2 -> Beta 3:
+  - Renamed to mythnettv
+  - todoremote bug fixed (bad column name)
+  - statistics bug fixed (no transfer stats caused crash)
+  - It is now possible to do a --todoremote, --importremote, or --importlocal
+    and provide all the needed information on the command line
+
+Beta 1 -> Beta 2:
+  - Now 50% of downloaded programs will be from the oldest queued, and 50% are
+    the newest queued
+  - Added --importremote, --todoremote, and --importlocal
+  - Implemented transcoding via mencoder. It's quite possible it'll encounter
+    a format it doesn't know about. Please let me know if that happens to you.
+  - Added --subscribe, --unsubscribe, --list and --update
+  - Added --statistics, --log, and --nextdownload

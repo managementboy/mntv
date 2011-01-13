@@ -1,0 +1,35 @@
+This is a brief explaination of the MythNetTV code:
+
+mythnettv
+=========
+
+This source file is the original user interface. Its a simple command line
+oriented user interface, which doesn't let you run more than one command at a
+time.
+
+mythnettvcore.py
+================
+
+The user interface just calls into here. This file calls all the other modules
+as required. If you're writing a new user interface for MythNetTV, then you
+should just have to import this file and off you go.
+
+database.py
+===========
+
+This code handles the MySQL database.
+
+program.py
+==========
+
+This code is an abstraction over the database used to handle each program.
+
+syndication.py
+======
+
+Everything needed for subscriptions.
+
+video.py
+========
+
+Video helper routines.
