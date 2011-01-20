@@ -324,7 +324,7 @@ class MythNetTvProgram:
 
     if self.persistant['url'].endswith('torrent') \
       or self.persistant.get('mime_type', '').endswith('torrent'):
-      total = self.DownloadHTTP(filename, out=out)
+      total = self.DownloadHTTP(filename, force_proxy=force_proxy, out=out)
       if total == 0:
         self.Store()
         return False
