@@ -555,9 +555,9 @@ class MythNetTvProgram:
                          'basename="%s";'
                          %(row['recgroup'], dest_file))
 
-    out.write('Rebuilding seek table\n')
-    commands.getoutput('mythtranscode --mpeg2 --buildindex --allkeys --infile "%s/%s"'
-                       % (videodir, dest_file))
+#    out.write('Rebuilding seek table\n')
+#    commands.getoutput('mythtranscode --mpeg2 --buildindex --allkeys --infile "%s/%s"'
+#                       % (videodir, dest_file))
 
     out.write('Creating Thumbnail\n')
     commands.getoutput('ffmpegthumbnailer -i "%s/%s" -o "%s/%s.png" -s 0'
