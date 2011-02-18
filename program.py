@@ -473,6 +473,15 @@ class MythNetTvProgram:
 
     finish = start + duration
 
+    # Determine the audioproperties of the video
+    audioprop = vid.Audioprop()
+
+    # Determine the subtitles of the video
+    subtitletypes = vid.Subtitletypes()
+
+    # Determine the Videoproperties
+    videoprop = vid.Videoprop()
+
     # Archive the original version of the video
     archiverow = self.db.GetOneRow('select * from mythnettv_archive '
                                    'where title="%s"'
@@ -534,6 +543,54 @@ class MythNetTvProgram:
                          self.db.FormatSqlValue('', start),
                          self.db.FormatSqlValue('', finish),
                          self.db.FormatSqlValue('', self.persistant['size'])))
+
+    self.db.ExecuteSql('insert into recordedprogram (chanid, starttime, endtime, '
+                       'title, subtitle, description, category, category_type, '
+                       'airdate, stars, previouslyshown, title_pronounce, stereo, '
+                       'subtitled, hdtv, closecaptioned, partnumber, parttotal, '
+                       'seriesid, originalairdate, colorcode, syndicatedepisodenumber, programid, '
+                       'manualid, generic, listingsource, first, last, '
+                       'audioprop, subtitletypes, videoprop) values '
+                       '(%s, %s, %s, '
+                       '%s, %s, %s, %s, %s, '
+                       '%s, %s, %s, %s, %s, '
+                       '%s, %s, %s, %s, %s, '
+                       '%s, %s, %s, %s, %s, '
+                       '%s, %s, %s, %s, %s, '
+                       '%s, %s, %s)'
+                       %(chanid,
+                         self.db.FormatSqlValue('', start),
+                         self.db.FormatSqlValue('', finish),
+                         self.db.FormatSqlValue('', self.persistant['title']),
+                         self.db.FormatSqlValue('',
+                                 self.persistant['subtitle']),
+                         self.db.FormatSqlValue('',
+                                 self.persistant['description']),
+                         self.db.FormatSqlValue('', ''),
+                         self.db.FormatSqlValue('', ''),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', ''),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', ''),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', ''),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', audioprop),
+                         self.db.FormatSqlValue('', subtitletypes),
+                         self.db.FormatSqlValue('', videoprop)))
 
     # If there is a category set for this subscription, then set that as well
     row = self.db.GetOneRow('select * from mythnettv_category where '
@@ -607,3 +664,30 @@ class MythNetTvProgram:
     self.persistant['attempts'] = 0
     self.persistant['last_attempt'] = None
     self.Store()
+    
+  def Updatemeta(self, filename):
+    """Import -- import a downloaded show into the MythTV user interface"""
+    
+    # Construct a video object
+    vid = None
+    vid = video.MythNetTvVideo(self.db, filename)
+    
+    # Determine the audioproperties of the video
+    audioprop = vid.Audioprop()
+
+    # Determine the subtitles of the video
+    subtitletypes = vid.Subtitletypes()
+
+    # Determine the Videoproperties
+    videoprop = vid.Videoprop()
+
+#    self.db.ExecuteSql('update recordedprogram set audioprop="%s", subtitleprop="%s", videoprop="%s" where '
+#                         'basename="%s";'
+#                         audioprop, subtitletypes, videoprop, filename))
+    # If there is a category set for this subscription, then set that as well
+    row = self.db.GetOneRow('select * from recorded where '
+                            'basename="%s";'
+                            % filename)
+
+    print ('update recordedprogram set audioprop="%s", subtitleprop="%s", videoprop="%s" where '
+                         'chanid="%s", starttime="%s", endtime="%s";' %(audioprop, subtitletypes, videoprop, row['chanid'], row['starttime'], row['endtime']))

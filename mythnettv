@@ -667,7 +667,12 @@ you want to do this?\n\n""")
 
   elif argv[1] == 'explainvideodir':
     utility.ExplainVideoDir(db)
-      
+
+  elif argv[1] == 'updatemeta':
+    filename = GetPossible(argv, 2)
+    prog = program.MythNetTvProgram(db)
+    prog.Updatemeta(filename)
+
   else:
     Usage(out)
 

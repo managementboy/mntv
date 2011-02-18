@@ -71,6 +71,47 @@ class MythNetTvVideo:
                           'Attributes found = %s'
                           %(self.filename, self.values))
 
+  def Audioprop(self):
+    """Audioprop -- return the the audioproperties of a video"""
+    if 'ID_AUDIO_NCH' in self.values:
+      if self.values['ID_AUDIO_NCH'] == '1':
+        return str('MONO')
+      if self.values['ID_AUDIO_NCH'] == '2':
+        return str('STEREO')
+      if self.values['ID_AUDIO_NCH'] == '6':
+        return str('SURROUND')
+      else:
+        return str('')
+    #FIXME:Dolby detection needs to be added
+
+  def Videoprop (self):
+    """Videoprop  -- return the Videoproperties of a video"""
+    if 'ID_VIDEO_WIDTH' in self.values:
+      if float(self.values['ID_VIDEO_HEIGHT']) >= 1080:
+        return str('1080')
+      elif float(self.values['ID_VIDEO_HEIGHT']) >= 720:
+        return str('720')
+      elif float(self.values['ID_VIDEO_WIDTH']) >= 1280:
+        return str('HDTV')
+      elif float(self.values['ID_VIDEO_WIDTH']) / float(self.values['ID_VIDEO_HEIGHT']) >= 1.4:
+        return str('WIDESCREEN')
+      else:
+        return str('')
+    #FIXME:How can we guess more types?
+    
+#    raise LengthException('Could not determine the Audioproperties of %s. '
+#                          'Attributes found = %s'
+#                          %(self.filename, self.values))
+
+  def Subtitletypes (self):
+    """Subtitletypes  -- return the the subtitletypes of a video"""
+    if 'ID_SUBTITLE_ID' in self.values:
+      return str('NORMAL')
+    else:
+      return str('')
+    #FIXME:How can we guess more types?
+
+
   def NeedsTranscode(self, out=sys.stdout):
     """NeedsTranscode -- decide if a video needs transcoding before import"""
 
@@ -80,7 +121,7 @@ class MythNetTvVideo:
 
     # Does need transcoding
     # Note that some avc1 videos work, and some don't -- so all get transcoded
-    return_true = ['FLV1']
+    return_true = ['FLV1','jpeg','WMV2']
 
     if self.values['ID_VIDEO_FORMAT'] in return_false:
       out.write('Files in format %s don\'t need transcoding\n'
@@ -140,7 +181,7 @@ please report it to mikal@stillhq.com
     newfilename = self.NewFilename(datadir, 'avi', out=out)
     start_size = os.stat(self.filename)[ST_SIZE]
 
-    command = 'mencoder "%s" %s -o "%s/%s"' %(self.filename, format,
+    command = 'ffmpeg -i "%s" %s "%s/%s"' %(self.filename, format,
                                               datadir, newfilename)
     (status, output) = commands.getstatusoutput(command)
 
@@ -167,6 +208,46 @@ please report it to mikal@stillhq.com
                    os.stat('%s/%s' %(datadir, newfilename))[ST_SIZE]))
 
     return newfilename
+
+  def Remux(self, datadir, out=sys.stdout):
+    """Remux -- Remux the video to MKV. Returns the new
+    filename.
+    """
+
+    # If the file is small, go for a format which will hopefully look nicer
+    out.write('Remuxing\n')
+    format = '-acodec copy -vcodec copy'
+    newfilename = self.NewFilename(datadir, 'avi', out=out)
+    start_size = os.stat(self.filename)[ST_SIZE]
+
+    command = 'ffmpeg -i "%s" %s "%s/%s"' %(self.filename, format,
+                                              datadir, newfilename)
+    (status, output) = commands.getstatusoutput(command)
+
+    if status != 0:
+      raise TranscodeException(self.db,
+                               'Transcode failed: %s\n%s\nCommand: %s'
+                               %(status, output, command))
+
+    # mencoder sometimes just returns junk data instead of doing the transcoding
+    # -- the one example of this I have seen is when the file in question was
+    # encumbered with DRM
+    if os.stat('%s/%s' %(datadir, newfilename)).st_size < 10000:
+      raise TranscodeException(self.db,
+                               'Transcode failed: an impossibly small file '
+                               'was returned')
+
+    if FLAGS.verbose_transcode:
+      out.write('----------\nmencoder output:\n%s\n----------\n\n' % output)
+
+    # Log the file change
+    if self.db:
+      self.db.Log('Remuxing changed size of file from %d to %d' \
+                   %(start_size,
+                   os.stat('%s/%s' %(datadir, newfilename))[ST_SIZE]))
+
+    return newfilename
+
 
 
 def Usage():
@@ -240,7 +321,7 @@ if __name__ == '__main__':
     if vid.NeedsTranscode():
       print ('Created output file: %s/%s'
              %(argv[3], vid.Transcode(argv[3])))
-
+             
   else:
     print 'Unknown command'
     Usage()
