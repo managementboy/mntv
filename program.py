@@ -688,6 +688,54 @@ class MythNetTvProgram:
     row = self.db.GetOneRow('select * from recorded where '
                             'basename="%s";'
                             % filename)
-
-    print ('update recordedprogram set audioprop="%s", subtitleprop="%s", videoprop="%s" where '
-                         'chanid="%s", starttime="%s", endtime="%s";' %(audioprop, subtitletypes, videoprop, row['chanid'], row['starttime'], row['endtime']))
+    row2 = self.db.GetOneRow('select * from recordedprogram where chanid="%s" AND starttime="%s" AND endtime="%s";' % ( row['chanid'], row['progstart'],row['progend']))
+#    print ('chanid="%s"' % row['chanid'])
+#    self.db.ExecuteSql(
+    if row2 is not None:
+      self.db.ExecuteSql('update recordedprogram set audioprop="%s", subtitletypes="%s", videoprop="%s" where chanid="%s" AND starttime="%s" AND endtime="%s";' % (audioprop, subtitletypes, videoprop, row['chanid'], row['progstart'], row['progend']))
+    else:
+      self.db.ExecuteSql('insert into recordedprogram (chanid, starttime, endtime, '
+                       'title, subtitle, description, category, category_type, '
+                       'airdate, stars, previouslyshown, title_pronounce, stereo, '
+                       'subtitled, hdtv, closecaptioned, partnumber, parttotal, '
+                       'seriesid, originalairdate, colorcode, syndicatedepisodenumber, programid, '
+                       'manualid, generic, listingsource, first, last, '
+                       'audioprop, subtitletypes, videoprop) values '
+                       '(%s, %s, %s, '
+                       '%s, %s, %s, %s, %s, '
+                       '%s, %s, %s, %s, %s, '
+                       '%s, %s, %s, %s, %s, '
+                       '%s, %s, %s, %s, %s, '
+                       '%s, %s, %s, %s, %s, '
+                       '%s, %s, %s)'
+                       %(row['chanid'],
+                         self.db.FormatSqlValue('', row['progstart']),
+                         self.db.FormatSqlValue('', row['progend']),
+                         self.db.FormatSqlValue('', row['title']),
+                         self.db.FormatSqlValue('', row['subtitle']),
+                         self.db.FormatSqlValue('', row['description']),
+                         self.db.FormatSqlValue('', ''),
+                         self.db.FormatSqlValue('', ''),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', ''),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', ''),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', ''),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', 0),
+                         self.db.FormatSqlValue('', audioprop),
+                         self.db.FormatSqlValue('', subtitletypes),
+                         self.db.FormatSqlValue('', videoprop)))

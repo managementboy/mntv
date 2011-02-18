@@ -49,7 +49,7 @@ class MythNetTvVideo:
     if not os.path.exists(self.filename):
       raise ParseException('Video file missing')
 
-    out = commands.getoutput('mplayer -vo null -frames 0 -identify "%s" '
+    out = commands.getoutput('mplayer -vo null -frames 1 -identify "%s" '
                              '2>&1 | grep "="' \
                              % self.filename)
     for line in out.split('\n'):
@@ -93,10 +93,12 @@ class MythNetTvVideo:
         return str('720')
       elif float(self.values['ID_VIDEO_WIDTH']) >= 1280:
         return str('HDTV')
-      elif float(self.values['ID_VIDEO_WIDTH']) / float(self.values['ID_VIDEO_HEIGHT']) >= 1.4:
+      elif float(self.values['ID_VIDEO_ASPECT']) >= 1.4:
         return str('WIDESCREEN')
       else:
         return str('')
+        
+        
     #FIXME:How can we guess more types?
     
 #    raise LengthException('Could not determine the Audioproperties of %s. '
