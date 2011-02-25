@@ -673,6 +673,11 @@ you want to do this?\n\n""")
     prog = program.MythNetTvProgram(db)
     prog.Updatemeta(filename)
 
+  elif argv[1] == 'tvrage':
+    showtitle = GetPossible(argv, 2)
+    prog = program.MythNetTvProgram(db)
+    prog.TVRage(showtitle)
+
   else:
     Usage(out)
 

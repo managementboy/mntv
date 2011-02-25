@@ -23,6 +23,8 @@ import proxyhandler
 import utility
 import video
 
+import tvrage.api
+
 # Note that plugins aren't actually plugins at the moment, and that flags
 # parsing will be a problem for plugins when we get there (I think).
 from plugins import bittorrent
@@ -50,7 +52,7 @@ class DirectoryException(utility.LoggingException):
 
 def SafeForFilename(s):
   """SafeForFilename -- convert s into something which can be used for a 
-     filename.
+    filename.
   """
 
   for c in [' ', '(', ')', '{', '}', '[', ']', ':', '\'', '"']:
@@ -93,7 +95,7 @@ class MythNetTvProgram:
 
     try:
       if self.db.GetOneRow('select * from mythnettv_programs '
-                           'where guid="%s";' % guid).keys() != []:
+                          'where guid="%s";' % guid).keys() != []:
         new_video = False
     except:
       dummy = 'blah'
@@ -184,14 +186,14 @@ class MythNetTvProgram:
     except MySQLdb.Error, (errno, errstr):
       if errno != 1064:
         raise StorageException(self.db, 'Could not store program %s: %s "%s"'
-                               %(self.persistant['guid'], errno, errstr))
+                              %(self.persistant['guid'], errno, errstr))
     except database.FormatException, e:
       raise e
     except Exception, e:
       raise StorageException(self.db,
-                             'Could not store program: %s: "%s" (%s)\n\n%s'
-                             %(self.persistant['guid'], e, type(e),
-                               repr(self.persistant)))
+                            'Could not store program: %s: "%s" (%s)\n\n%s'
+                            %(self.persistant['guid'], e, type(e),
+                              repr(self.persistant)))
 
   def SetUrl(self, url):
     """SetUrl -- set just the URL for the program"""
@@ -224,9 +226,9 @@ class MythNetTvProgram:
     """DownloadRTSP -- download a show using mplayer"""
     datadir = self.db.GetSettingWithDefault('datadir', FLAGS.datadir)
     (status, out) = commands.getstatusoutput('cd %s; '
-                                             'mplayer -dumpstream "%s"'
-                                             %(datadir,
-                                               self.persistant['url']))
+                                            'mplayer -dumpstream "%s"'
+                                            %(datadir,
+                                              self.persistant['url']))
     if status != 0:
       raise DownloadException('MPlayer download failed')
 
@@ -234,7 +236,7 @@ class MythNetTvProgram:
     return os.stat(filename)[ST_SIZE]
 
   def DownloadHTTP(self, filename, force_proxy=None, force_budget=-1,
-                   out=sys.stdout):
+                  out=sys.stdout):
     """DownloadHTTP -- download a show, using HTTP"""
 
     out.write('Download URL is "%s"\n' % self.persistant['url'])
@@ -252,7 +254,7 @@ class MythNetTvProgram:
       total = int(self.persistant.get('transfered', 0))
 
       this_attempt_total = proxyhandler.HTTPCopy(self.db, proxy, remote, local,
-                                                 out=out)
+                                                out=out)
       total += this_attempt_total
 
       self.persistant['transfered'] = repr(total)
@@ -268,23 +270,23 @@ class MythNetTvProgram:
   def Info(self, s):
     """Info -- A callback for download status information"""
     sys.stdout.write('%s: %s --> %s\n' %(self.persistant['title'],
-                                         self.persistant['subtitle'],
-                                         s))
+                                        self.persistant['subtitle'],
+                                        s))
     self.persistant['last_attempt'] = datetime.datetime.now()
     self.Store()
 
   def Download(self, datadir, force_proxy=None, force_budget=-1,
-               out=sys.stdout):
+              out=sys.stdout):
     """Download -- download the show"""
 
     one_hour = datetime.timedelta(hours=1)
     one_hour_ago = datetime.datetime.now() - one_hour
 
     out.write('Considering %s: %s\n' %(self.persistant['title'],
-                                       self.persistant['subtitle']))
+                                      self.persistant['subtitle']))
     
     if 'last_attempt' in self.persistant and \
-       self.persistant['last_attempt'] > one_hour_ago:
+      self.persistant['last_attempt'] > one_hour_ago:
       out.write('Last attempt was too recent. It was at %s\n'
                 % self.persistant['last_attempt'])
 
@@ -307,7 +309,7 @@ class MythNetTvProgram:
     if 'attempts' in self.persistant and self.persistant['attempts']:
       max_attempts = int(self.db.GetSettingWithDefault('attempts', 3))
       print ('This is a repeat attempt (%d attempts so far, max is %d)'
-             %(self.persistant['attempts'], max_attempts))
+            %(self.persistant['attempts'], max_attempts))
       if self.persistant['attempts'] > max_attempts:
         out.write('Too many failed attempts, giving up on this program\n')
         self.persistant['download_finished'] = 0
@@ -429,15 +431,15 @@ class MythNetTvProgram:
             out.write('Picked %s from the directory\n' % filename)
             handled = True
 
-     # if len(videos) == 1:
+    # if len(videos) == 1:
         # One video file
-       # filename = '%s/%s' %(filename, videos[0])
-       # out.write('Picked %s from the directory\n' % filename)
-       # handled = True
+      # filename = '%s/%s' %(filename, videos[0])
+      # out.write('Picked %s from the directory\n' % filename)
+      # handled = True
 
       if not handled:
         raise DirectoryException(self.db,
-                                 'Don\'t know how to handle this directory')
+                                'Don\'t know how to handle this directory')
 
     videodir = utility.GetVideoDir(self.db)
     vid = video.MythNetTvVideo(self.db, filename)
@@ -473,6 +475,39 @@ class MythNetTvProgram:
 
     finish = start + duration
 
+    # get show and episode details from TV-Rage, if possible
+
+    if self.persistant['title'] != 'Internet':
+      show = tvrage.api.Show(self.persistant['title'])
+
+      # first try assuming a System of S##E##
+      showseason = re.sub('[E]{1,2}.*$', '', self.persistant['subtitle'])
+      showseason = re.sub('^.*[S]', '', showseason)
+      showepisode = re.sub('^.*[E]', '', self.persistant['subtitle'])
+      showepisode = re.sub('[ ].*$', '', showepisode)
+      try:
+        episode = show.season(int(showseason)).episode(int(showepisode))
+        #self.persistant['title'] = show.title
+        #self.persistant['subtitle'] = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
+        self.persistant['description'] = episode.summary
+        out.write('Found the show on TVRage\n')
+      except:
+        pass
+
+      # now try assuming a System of ##x##
+      showseason = re.sub('[x]{1,2}.*$', '', self.persistant['subtitle'])
+      showseason = re.sub('^.*[ ]', '', showseason)
+      showepisode = re.sub('^.*[x]', '', self.persistant['subtitle'])
+      showepisode = re.sub('[ ].*$', '', showepisode)
+      try:
+        episode = show.season(int(showseason)).episode(int(showepisode))
+        #self.persistant['title'] = show.title
+        #self.persistant['subtitle'] = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
+        self.persistant['description'] = episode.summary
+        out.write('Found the show on TVRage\n')
+      except:
+        pass
+
     # Determine the audioproperties of the video
     audioprop = vid.Audioprop()
 
@@ -484,8 +519,8 @@ class MythNetTvProgram:
 
     # Archive the original version of the video
     archiverow = self.db.GetOneRow('select * from mythnettv_archive '
-                                   'where title="%s"'
-                                   % self.persistant['title'])
+                                  'where title="%s"'
+                                  % self.persistant['title'])
     if archiverow:
       archive_location = ('%s/%s_%s'
                           %(archiverow['path'],
@@ -520,77 +555,77 @@ class MythNetTvProgram:
 
     # Ensure sensible permissions on the recording that MythTV stores
     os.chmod('%s/%s' %(videodir, dest_file),
-             stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP |
-             stat.S_IROTH | stat.S_IWOTH)
+            stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP |
+            stat.S_IROTH | stat.S_IWOTH)
 
     # The quotes are missing around the description, because they are added
     # by the FormatSqlValue() call
     self.db.ExecuteSql('insert into recorded (chanid, starttime, endtime, '
-                       'title, subtitle, description, hostname, basename, '
-                       'progstart, progend, filesize, autoexpire) values '
-                       '(%s, %s, %s, %s, '
-                       '%s, %s, "%s", "%s", %s, %s, %s, 1)'
-                       %(chanid,
-                         self.db.FormatSqlValue('', start),
-                         self.db.FormatSqlValue('', finish),
-                         self.db.FormatSqlValue('', self.persistant['title']),
-                         self.db.FormatSqlValue('',
-                                 self.persistant['subtitle']),
-                         self.db.FormatSqlValue('',
-                                 self.persistant['description']),
-                         socket.gethostname(),
-                         dest_file,
-                         self.db.FormatSqlValue('', start),
-                         self.db.FormatSqlValue('', finish),
-                         self.db.FormatSqlValue('', self.persistant['size'])))
+                      'title, subtitle, description, hostname, basename, '
+                      'progstart, progend, filesize, autoexpire) values '
+                      '(%s, %s, %s, %s, '
+                      '%s, %s, "%s", "%s", %s, %s, %s, 1)'
+                      %(chanid,
+                        self.db.FormatSqlValue('', start),
+                        self.db.FormatSqlValue('', finish),
+                        self.db.FormatSqlValue('', self.persistant['title']),
+                        self.db.FormatSqlValue('',
+                                self.persistant['subtitle']),
+                        self.db.FormatSqlValue('',
+                                self.persistant['description']),
+                        socket.gethostname(),
+                        dest_file,
+                        self.db.FormatSqlValue('', start),
+                        self.db.FormatSqlValue('', finish),
+                        self.db.FormatSqlValue('', self.persistant['size'])))
 
     self.db.ExecuteSql('insert into recordedprogram (chanid, starttime, endtime, '
-                       'title, subtitle, description, category, category_type, '
-                       'airdate, stars, previouslyshown, title_pronounce, stereo, '
-                       'subtitled, hdtv, closecaptioned, partnumber, parttotal, '
-                       'seriesid, originalairdate, colorcode, syndicatedepisodenumber, programid, '
-                       'manualid, generic, listingsource, first, last, '
-                       'audioprop, subtitletypes, videoprop) values '
-                       '(%s, %s, %s, '
-                       '%s, %s, %s, %s, %s, '
-                       '%s, %s, %s, %s, %s, '
-                       '%s, %s, %s, %s, %s, '
-                       '%s, %s, %s, %s, %s, '
-                       '%s, %s, %s, %s, %s, '
-                       '%s, %s, %s)'
-                       %(chanid,
-                         self.db.FormatSqlValue('', start),
-                         self.db.FormatSqlValue('', finish),
-                         self.db.FormatSqlValue('', self.persistant['title']),
-                         self.db.FormatSqlValue('',
-                                 self.persistant['subtitle']),
-                         self.db.FormatSqlValue('',
-                                 self.persistant['description']),
-                         self.db.FormatSqlValue('', ''),
-                         self.db.FormatSqlValue('', ''),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', ''),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', ''),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', ''),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', audioprop),
-                         self.db.FormatSqlValue('', subtitletypes),
-                         self.db.FormatSqlValue('', videoprop)))
+                      'title, subtitle, description, category, category_type, '
+                      'airdate, stars, previouslyshown, title_pronounce, stereo, '
+                      'subtitled, hdtv, closecaptioned, partnumber, parttotal, '
+                      'seriesid, originalairdate, colorcode, syndicatedepisodenumber, programid, '
+                      'manualid, generic, listingsource, first, last, '
+                      'audioprop, subtitletypes, videoprop) values '
+                      '(%s, %s, %s, '
+                      '%s, %s, %s, %s, %s, '
+                      '%s, %s, %s, %s, %s, '
+                      '%s, %s, %s, %s, %s, '
+                      '%s, %s, %s, %s, %s, '
+                      '%s, %s, %s, %s, %s, '
+                      '%s, %s, %s)'
+                      %(chanid,
+                        self.db.FormatSqlValue('', start),
+                        self.db.FormatSqlValue('', finish),
+                        self.db.FormatSqlValue('', self.persistant['title']),
+                        self.db.FormatSqlValue('',
+                                self.persistant['subtitle']),
+                        self.db.FormatSqlValue('',
+                                self.persistant['description']),
+                        self.db.FormatSqlValue('', ''),
+                        self.db.FormatSqlValue('', ''),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', ''),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', ''),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', ''),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', audioprop),
+                        self.db.FormatSqlValue('', subtitletypes),
+                        self.db.FormatSqlValue('', videoprop)))
 
     # If there is a category set for this subscription, then set that as well
     row = self.db.GetOneRow('select * from mythnettv_category where '
@@ -599,8 +634,8 @@ class MythNetTvProgram:
     if row:
       out.write('Setting category to %s\n' % row['category'])
       self.db.ExecuteSql('update recorded set category="%s" where '
-                         'basename="%s";'
-                         %(row['category'], dest_file))
+                        'basename="%s";'
+                        %(row['category'], dest_file))
 
     # Ditto the group
     row = self.db.GetOneRow('select * from mythnettv_group where '
@@ -609,8 +644,8 @@ class MythNetTvProgram:
     if row:
       out.write('Setting recording group to %s\n' % row['recgroup'])
       self.db.ExecuteSql('update recorded set recgroup="%s" where '
-                         'basename="%s";'
-                         %(row['recgroup'], dest_file))
+                        'basename="%s";'
+                        %(row['recgroup'], dest_file))
 
 #    out.write('Rebuilding seek table\n')
 #    commands.getoutput('mythtranscode --mpeg2 --buildindex --allkeys --infile "%s/%s"'
@@ -618,7 +653,7 @@ class MythNetTvProgram:
 
     out.write('Creating Thumbnail\n')
     commands.getoutput('ffmpegthumbnailer -i "%s/%s" -o "%s/%s.png" -s 0'
-                       % (videodir, dest_file, videodir, dest_file))
+                      % (videodir, dest_file, videodir, dest_file))
 
 #    if FLAGS.commflag:
 #      out.write('Rebuilding seek table\n')
@@ -666,7 +701,7 @@ class MythNetTvProgram:
     self.Store()
     
   def Updatemeta(self, filename):
-    """Import -- import a downloaded show into the MythTV user interface"""
+    """UpdateMeta-- Update metadata gained from video files"""
     
     # Construct a video object
     vid = None
@@ -695,47 +730,97 @@ class MythNetTvProgram:
       self.db.ExecuteSql('update recordedprogram set audioprop="%s", subtitletypes="%s", videoprop="%s" where chanid="%s" AND starttime="%s" AND endtime="%s";' % (audioprop, subtitletypes, videoprop, row['chanid'], row['progstart'], row['progend']))
     else:
       self.db.ExecuteSql('insert into recordedprogram (chanid, starttime, endtime, '
-                       'title, subtitle, description, category, category_type, '
-                       'airdate, stars, previouslyshown, title_pronounce, stereo, '
-                       'subtitled, hdtv, closecaptioned, partnumber, parttotal, '
-                       'seriesid, originalairdate, colorcode, syndicatedepisodenumber, programid, '
-                       'manualid, generic, listingsource, first, last, '
-                       'audioprop, subtitletypes, videoprop) values '
-                       '(%s, %s, %s, '
-                       '%s, %s, %s, %s, %s, '
-                       '%s, %s, %s, %s, %s, '
-                       '%s, %s, %s, %s, %s, '
-                       '%s, %s, %s, %s, %s, '
-                       '%s, %s, %s, %s, %s, '
-                       '%s, %s, %s)'
-                       %(row['chanid'],
-                         self.db.FormatSqlValue('', row['progstart']),
-                         self.db.FormatSqlValue('', row['progend']),
-                         self.db.FormatSqlValue('', row['title']),
-                         self.db.FormatSqlValue('', row['subtitle']),
-                         self.db.FormatSqlValue('', row['description']),
-                         self.db.FormatSqlValue('', ''),
-                         self.db.FormatSqlValue('', ''),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', ''),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', ''),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', ''),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', 0),
-                         self.db.FormatSqlValue('', audioprop),
-                         self.db.FormatSqlValue('', subtitletypes),
-                         self.db.FormatSqlValue('', videoprop)))
+                      'title, subtitle, description, category, category_type, '
+                      'airdate, stars, previouslyshown, title_pronounce, stereo, '
+                      'subtitled, hdtv, closecaptioned, partnumber, parttotal, '
+                      'seriesid, originalairdate, colorcode, syndicatedepisodenumber, programid, '
+                      'manualid, generic, listingsource, first, last, '
+                      'audioprop, subtitletypes, videoprop) values '
+                      '(%s, %s, %s, '
+                      '%s, %s, %s, %s, %s, '
+                      '%s, %s, %s, %s, %s, '
+                      '%s, %s, %s, %s, %s, '
+                      '%s, %s, %s, %s, %s, '
+                      '%s, %s, %s, %s, %s, '
+                      '%s, %s, %s)'
+                      %(row['chanid'],
+                        self.db.FormatSqlValue('', row['progstart']),
+                        self.db.FormatSqlValue('', row['progend']),
+                        self.db.FormatSqlValue('', row['title']),
+                        self.db.FormatSqlValue('', row['subtitle']),
+                        self.db.FormatSqlValue('', row['description']),
+                        self.db.FormatSqlValue('', ''),
+                        self.db.FormatSqlValue('', ''),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', ''),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', ''),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', ''),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', 0),
+                        self.db.FormatSqlValue('', audioprop),
+                        self.db.FormatSqlValue('', subtitletypes),
+                        self.db.FormatSqlValue('', videoprop)))
+
+  def TVRage(self, showtitle, out=sys.stdout):
+    """TVRage -- Get episode information from TVRage"""
+
+    #initialize TVRage api by getting an object for the show
+    show = tvrage.api.Show(showtitle)
+  
+    #loop for all recordings in the database that have the same show name
+    for row in self.db.GetRows('SELECT title, subtitle, basename FROM recorded WHERE title LIKE "%s" OR subtitle LIKE "%s";' % (showtitle, showtitle)):
+      # try assuming a system of S##E##
+      seasonepisode = row['subtitle']
+      showseason = re.sub('[E]{1,2}.*$', '', seasonepisode)
+      showseason = re.sub('^.*[S]', '', showseason)
+      showepisode = re.sub('^.*[E]', '', seasonepisode)
+      showepisode = re.sub('[ ].*$', '', showepisode)
+      try:  
+        episode = show.season(int(showseason)).episode(int(showepisode))
+        episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
+        out.write('Current subtitle: ' + `row['subtitle']` + '\n')
+        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+        out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
+      except:
+        pass
+      
+      # now try assuming a system of ##x##
+      showseason = re.sub('[x]{1,2}.*$', '', row['subtitle'])
+      showseason = re.sub('^.*[ ]', '', showseason)
+      showepisode = re.sub('^.*[x]', '', row['subtitle'])
+      showepisode = re.sub('[ ].*$', '', showepisode)
+      try:
+        episode = show.season(int(showseason)).episode(int(showepisode))
+        episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
+        out.write('Current subtitle: ' + `row['subtitle']` + '\n')
+        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+        out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
+      except:
+        pass
+
+      # now try assuming a system of 1 of X
+      showepisode = re.sub('[of ]{1,2}.*$', '', row['subtitle'])
+      showepisode = re.sub('^.*[ ]', '', showepisode)
+      showseason = 1
+      try:
+        episode = show.season(int(showseason)).episode(int(showepisode))
+        episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
+        out.write('Current subtitle: ' + `row['subtitle']` + '\n')
+        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+        out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
+      except:
+        pass
