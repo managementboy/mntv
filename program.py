@@ -785,42 +785,89 @@ class MythNetTvProgram:
     for row in self.db.GetRows('SELECT title, subtitle, basename FROM recorded WHERE title LIKE "%s" OR subtitle LIKE "%s";' % (showtitle, showtitle)):
       # try assuming a system of S##E##
       seasonepisode = row['subtitle']
-      showseason = re.sub('[E]{1,2}.*$', '', seasonepisode)
-      showseason = re.sub('^.*[S]', '', showseason)
-      showepisode = re.sub('^.*[E]', '', seasonepisode)
-      showepisode = re.sub('[ ].*$', '', showepisode)
-      try:  
-        episode = show.season(int(showseason)).episode(int(showepisode))
-        episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
-        out.write('Current subtitle: ' + `row['subtitle']` + '\n')
-        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
-        out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
+      # sometimes the subtitle contains a Season but the season number is 1, fix this
+      try:
+        match = re.compile(r'[Ss]eason(\d+)')
+        # I can later add this to the season by reducing by one
+        series = int(match.search(seasonepisode).group(1)) - 1
       except:
+        series = 0
         pass
       
-      # now try assuming a system of ##x##
-      showseason = re.sub('[x]{1,2}.*$', '', row['subtitle'])
-      showseason = re.sub('^.*[ ]', '', showseason)
-      showepisode = re.sub('^.*[x]', '', row['subtitle'])
-      showepisode = re.sub('[ ].*$', '', showepisode)
       try:
+        match = re.compile(r'[Ss]eason (\d+)')
+        # I can later add this to the season by reducing by one
+        series = int(match.search(seasonepisode).group(1)) - 1
+      except:
+        series = 0
+      pass
+      #same for title
+      try:
+        match = re.compile(r'[Ss]eason (\d+)')
+        series = int(match.search(row['title']).group(1)) - 1
+      except:
+        series = 0
+        pass
+      
+      try:  
+        # try assuming a system of S##E##
+        showseason = re.sub('[E]{1,2}.*$', '', seasonepisode)
+        showseason = re.sub('^.*[S]', '', showseason)
+        showepisode = re.sub('^.*[E]', '', seasonepisode)
+        showepisode = re.sub('[ ].*$', '', showepisode)
+        showseason = int(showseason) + int(series)
         episode = show.season(int(showseason)).episode(int(showepisode))
         episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
         out.write('Current subtitle: ' + `row['subtitle']` + '\n')
         self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
         out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
       except:
+        #out.write('S##E## not found')
         pass
 
-      # now try assuming a system of 1 of X
-      showepisode = re.sub('[of ]{1,2}.*$', '', row['subtitle'])
-      showepisode = re.sub('^.*[ ]', '', showepisode)
-      showseason = 1
       try:
+        # now try assuming a system of ##x##
+        showseason = re.sub('[x]{1,2}.*$', '', row['subtitle'])
+        showseason = re.sub('^.*[ ]', '', showseason)
+        showepisode = re.sub('^.*[x]', '', row['subtitle'])
+        showepisode = re.sub('[ ].*$', '', showepisode)
+        showseason = int(showseason) + int(series)
         episode = show.season(int(showseason)).episode(int(showepisode))
         episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
         out.write('Current subtitle: ' + `row['subtitle']` + '\n')
         self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
         out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
       except:
+        #out.write('##x## not found')
         pass
+
+      try:
+        # now try assuming a system of 1 of X
+        showepisode = re.sub('[ of ]{1,2}.*$', '', row['subtitle'])
+        showepisode = re.sub('^.*[ ]', '', showepisode)
+        showseason = 1
+        showseason = int(showseason) + int(series)
+        episode = show.season(int(showseason)).episode(int(showepisode))
+        episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
+        out.write('Current subtitle: ' + `row['subtitle']` + '\n')
+        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+        out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
+      except:
+        #out.write('# of # not found')
+        pass
+      
+      try:
+        # now try assuming a system of 1/X
+        showepisode = re.sub('[\\/]{1,2}.*$', '', row['subtitle'])
+        showepisode = re.sub('^.*[ ]', '', showepisode)
+        showseason = 1
+        showseason = int(showseason) + int(series)
+        episode = show.season(int(showseason)).episode(int(showepisode))
+        episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
+        out.write('Current subtitle: ' + `row['subtitle']` + '\n')
+        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+        out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
+      except:
+        #out.write('##/## not found')
+        pass
+      
