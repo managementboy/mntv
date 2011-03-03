@@ -481,31 +481,33 @@ class MythNetTvProgram:
       show = tvrage.api.Show(self.persistant['title'])
 
       # first try assuming a System of S##E##
-      showseason = re.sub('[E]{1,2}.*$', '', self.persistant['subtitle'])
-      showseason = re.sub('^.*[S]', '', showseason)
-      showepisode = re.sub('^.*[E]', '', self.persistant['subtitle'])
-      showepisode = re.sub('[ ].*$', '', showepisode)
       try:
+        showseason = re.sub('[E]{1,2}.*$', '', self.persistant['subtitle'])
+        showseason = re.sub('^.*[S]', '', showseason)
+        showepisode = re.sub('^.*[E]', '', self.persistant['subtitle'])
+        showepisode = re.sub('[ ].*$', '', showepisode)
         episode = show.season(int(showseason)).episode(int(showepisode))
         #self.persistant['title'] = show.title
-        #self.persistant['subtitle'] = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
+        self.persistant['subtitle'] = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
         self.persistant['description'] = episode.summary
         out.write('Found the show on TVRage\n')
       except:
+        out.write('No TVRage' + `episode` + ' ' + `showseason` + ' ' + `showepisode`)
         pass
 
       # now try assuming a System of ##x##
-      showseason = re.sub('[x]{1,2}.*$', '', self.persistant['subtitle'])
-      showseason = re.sub('^.*[ ]', '', showseason)
-      showepisode = re.sub('^.*[x]', '', self.persistant['subtitle'])
-      showepisode = re.sub('[ ].*$', '', showepisode)
       try:
+        showseason = re.sub('[x]{1,2}.*$', '', self.persistant['subtitle'])
+        showseason = re.sub('^.*[ ]', '', showseason)
+        showepisode = re.sub('^.*[x]', '', self.persistant['subtitle'])
+        showepisode = re.sub('[ ].*$', '', showepisode)
         episode = show.season(int(showseason)).episode(int(showepisode))
         #self.persistant['title'] = show.title
-        #self.persistant['subtitle'] = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
+        self.persistant['subtitle'] = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
         self.persistant['description'] = episode.summary
         out.write('Found the show on TVRage\n')
       except:
+        out.write('No TVRage' + `episode` + ' ' + `showseason` + ' ' + `showepisode`)
         pass
 
     # Determine the audioproperties of the video
@@ -558,6 +560,8 @@ class MythNetTvProgram:
             stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP |
             stat.S_IROTH | stat.S_IWOTH)
 
+    filestats = os.stat('%s/%s' %(videodir, dest_file))
+    self.persistant['size'] = filestats [stat.ST_SIZE]
     # The quotes are missing around the description, because they are added
     # by the FormatSqlValue() call
     self.db.ExecuteSql('insert into recorded (chanid, starttime, endtime, '
@@ -715,7 +719,7 @@ class MythNetTvProgram:
 
     # Determine the Videoproperties
     videoprop = vid.Videoprop()
-
+    
 #    self.db.ExecuteSql('update recordedprogram set audioprop="%s", subtitleprop="%s", videoprop="%s" where '
 #                         'basename="%s";'
 #                         audioprop, subtitletypes, videoprop, filename))
@@ -727,7 +731,7 @@ class MythNetTvProgram:
 #    print ('chanid="%s"' % row['chanid'])
 #    self.db.ExecuteSql(
     if row2 is not None:
-      self.db.ExecuteSql('update recordedprogram set audioprop="%s", subtitletypes="%s", videoprop="%s" where chanid="%s" AND starttime="%s" AND endtime="%s";' % (audioprop, subtitletypes, videoprop, row['chanid'], row['progstart'], row['progend']))
+      self.db.ExecuteSql('update recordedprogram set audioprop="%s", subtitletypes="%s", videoprop="%s", filesize="%s" where chanid="%s" AND starttime="%s" AND endtime="%s";' % (audioprop, subtitletypes, videoprop, row['chanid'], row['progstart'], row['progend']))
     else:
       self.db.ExecuteSql('insert into recordedprogram (chanid, starttime, endtime, '
                       'title, subtitle, description, category, category_type, '
@@ -871,3 +875,10 @@ class MythNetTvProgram:
         #out.write('##/## not found')
         pass
       
+  def titlefix(self, oldtitle, newtitle, out=sys.stdout):
+    """titlefix -- fix the current title with a new one """
+    # this replaces the old title with the new one, removes any references to the new title form the subtitle
+    if oldtitle != 'Internet':
+      self.db.ExecuteSql ('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s";' % (newtitle, newtitle, oldtitle))
+    else:
+      self.db.ExecuteSql ('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s" AND subtitle LIKE "%%%s%%";' % (newtitle, newtitle, oldtitle, newtitle))

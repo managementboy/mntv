@@ -3,6 +3,7 @@
 # This script requires that mplayer be installed
 
 # Copyright (C) Michael Still (mikal@stillhq.com) 2006, 2007, 2008
+# Copyright (C) Elkin Fricke (managementboy@gmail.com) 2011
 # Released under the terms of the GNU GPL v2
 
 # Latest source is always at http://www.stillhq.com/mythtv/mythnettv/
@@ -30,9 +31,8 @@ import mythnettvcore
 import utility
 import video
 
-__author__ = 'Michael Still (mikal@stillhq.com)'
-__version__ = 'Release 7'
-
+__author__ = 'Michael Still (mikal@stillhq.com), Elkin Fricke (managementboy@gmail.com)'
+__version__ = 'Release 8'
 
 # Define command line flags
 FLAGS = gflags.FLAGS
@@ -196,6 +196,18 @@ def Usage(out):
                       selected. This can help debug when the wrong
                       video directory is being used, or no video
                       directory at all is found
+
+(metadata)
+  tvrage <title>
+                    : update all recordings that match the title
+                      with the subtitle and description
+                      found on TVRage.
+                      Current subtitle must contain the season
+                      and episode in a format like S##E##
+                      or ##/##
+  updatemeta <filename>  : guess the subtitle and video
+                      type of a recording by analyzing it with                      
+                      mplayer and update the recorded EPG data
 """)
 
   out.write('\n\nAdditionally, you can use these global flags:%s\n' % FLAGS)
@@ -677,6 +689,12 @@ you want to do this?\n\n""")
     showtitle = GetPossible(argv, 2)
     prog = program.MythNetTvProgram(db)
     prog.TVRage(showtitle)
+
+  elif argv[1] == 'titlefix':
+    oldtitle = GetPossible(argv, 2)
+    newtitle = GetPossible(argv, 3)
+    prog = program.MythNetTvProgram(db)
+    prog.titlefix(oldtitle, newtitle)
 
   else:
     Usage(out)
