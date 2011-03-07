@@ -492,7 +492,7 @@ class MythNetTvProgram:
         self.persistant['description'] = episode.summary
         out.write('Found the show on TVRage\n')
       except:
-        out.write('No TVRage' + `episode` + ' ' + `showseason` + ' ' + `showepisode`)
+        #out.write('No TVRage' + `episode` + ' ' + `showseason` + ' ' + `showepisode`)
         pass
 
       # now try assuming a System of ##x##
@@ -507,7 +507,7 @@ class MythNetTvProgram:
         self.persistant['description'] = episode.summary
         out.write('Found the show on TVRage\n')
       except:
-        out.write('No TVRage' + `episode` + ' ' + `showseason` + ' ' + `showepisode`)
+        #out.write('No TVRage' + `episode` + ' ' + `showseason` + ' ' + `showepisode`)
         pass
 
     # Determine the audioproperties of the video
