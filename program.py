@@ -424,7 +424,7 @@ class MythNetTvProgram:
 
       videos = []
       for ent in ents:
-        for extn in ['.avi', '.wmv', '.mp4']:
+        for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
           if ent.endswith(extn):
             videos.append(ent)
             filename = '%s/%s' %(filename, videos[0])
