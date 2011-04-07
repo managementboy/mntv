@@ -478,7 +478,11 @@ class MythNetTvProgram:
     # get show and episode details from TV-Rage, if possible
 
     if self.persistant['title'] != 'Internet':
-      show = tvrage.api.Show(self.persistant['title'])
+      try:
+        show = tvrage.api.Show(self.persistant['title'])
+      except:
+        out.write('Show was not found on TVRage\n')
+        pass
 
       # first try assuming a System of S##E##
       try:
