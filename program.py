@@ -25,6 +25,8 @@ import video
 
 import tvrage.api
 
+import UnRAR2
+
 # Note that plugins aren't actually plugins at the moment, and that flags
 # parsing will be a problem for plugins when we get there (I think).
 from plugins import bittorrent
@@ -422,7 +424,17 @@ class MythNetTvProgram:
         out.write('Picked %s from the directory\n' % filename)
         handled = True
 
-      videos = []
+      # if the directory contains RAR files extract them, just in case 
+      for ent in ents:
+        for extn in ['.rar', '.RAR']:
+          if ent.endswith(extn):
+            rarname = '%s/%s' %(filename, ent)
+            UnRAR2.RarFile(rarname).extract(path=filename)
+            out.write('Extracted %s in the directory\n' % rarname)
+
+      ents = os.listdir(filename)
+      # try to find video files in subdirectories
+      videos = []            
       for ent in ents:
         for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
           if ent.endswith(extn):
@@ -659,9 +671,9 @@ class MythNetTvProgram:
 #    commands.getoutput('mythtranscode --mpeg2 --buildindex --allkeys --infile "%s/%s"'
 #                       % (videodir, dest_file))
 
-    out.write('Creating Thumbnail\n')
-    commands.getoutput('ffmpegthumbnailer -i "%s/%s" -o "%s/%s.png" -s 0'
-                      % (videodir, dest_file, videodir, dest_file))
+#    out.write('Creating Thumbnail\n')
+#    commands.getoutput('ffmpegthumbnailer -i "%s/%s" -o "%s/%s.png" -s 0'
+#                      % (videodir, dest_file, videodir, dest_file))
 
 #    if FLAGS.commflag:
 #      out.write('Rebuilding seek table\n')
