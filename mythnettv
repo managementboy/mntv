@@ -198,7 +198,7 @@ def Usage(out):
                       directory at all is found
 
 (metadata)
-  tvrage <title>
+  tvrage <title> <ragetvtitle>
                     : update all recordings that match the title
                       with the subtitle and description
                       found on TVRage.

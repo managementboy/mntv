@@ -504,7 +504,7 @@ class MythNetTvProgram:
         showepisode = re.sub('[ ].*$', '', showepisode)
         episode = show.season(int(showseason)).episode(int(showepisode))
         #self.persistant['title'] = show.title
-        self.persistant['subtitle'] = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
+        self.persistant['subtitle'] = episode.season + 'x' + episode.number + ' ' + episode.title
         self.persistant['description'] = episode.summary
         out.write('Found the show on TVRage\n')
       except:
@@ -519,11 +519,98 @@ class MythNetTvProgram:
         showepisode = re.sub('[ ].*$', '', showepisode)
         episode = show.season(int(showseason)).episode(int(showepisode))
         #self.persistant['title'] = show.title
-        self.persistant['subtitle'] = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
+        self.persistant['subtitle'] = episode.season + 'x' + episode.number + ' ' + episode.title
         self.persistant['description'] = episode.summary
         out.write('Found the show on TVRage\n')
       except:
         #out.write('No TVRage' + `episode` + ' ' + `showseason` + ' ' + `showepisode`)
+        pass
+
+      try:
+        # what if we have a date like 2009.01.01?
+        myairdate = re.search("(\d{4}).(\d{2}).(\d{2})", self.persistant['subtitle']) 
+        #Go through all seasons, as TVRage does not provide a search by airdate 
+        seasoncount = int(show.seasons)
+        a = 0
+        while (seasoncount > a):
+          # the range starts with 0 so add 1 
+          try:
+            season = show.season(a+1)
+            episodecount = int(len(season.keys()))
+          except:
+            break
+          a = a+1
+          b = 0
+          while (episodecount > b):
+            # some episodes returned by tvrage have errors... try to catch them
+            try:
+              episode = show.season(a+1).episode(b)
+              if episode.airdate.strftime("%Y.%m.%d") == myairdate.group(0):
+                out.write('Episode match YYYY.MM.DD: (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' (' + `a+1` + 'x' + `b` + ') ' + episode.title
+                self.persistant['description'] = episode.summary
+            except:
+              pass
+            b = b+1
+      except:
+        pass
+
+      try:
+        # what if we have a date like 2009 01 01?
+        myairdate = re.search("(\d{4}) (\d{2}) (\d{2})", self.persistant['subtitle']) 
+        #Go through all seasons, as TVRage does not provide a search by airdate 
+        seasoncount = int(show.seasons)
+        a = 0
+        while (seasoncount > a):
+          # the range starts with 0 so add 1 
+          try:
+            season = show.season(a+1)
+            episodecount = int(len(season.keys()))
+          except:
+            break
+          a = a+1
+          b = 0
+          while (episodecount > b):
+            # some episodes returned by tvrage have errors... try to catch them
+            try:
+              episode = show.season(a+1).episode(b)
+              if episode.airdate.strftime("%Y %m %d") == myairdate.group(0):
+                out.write('Episode match YYYY MM DD: (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' (' + `a+1` + 'x' + `b` + ') ' + episode.title
+                self.persistant['description'] = episode.summary
+            except:
+              pass
+            b = b+1
+      except:
+        pass
+
+      try:
+        # what if we have a date like 20090101?
+        myairdate = re.search("(\d{4})(\d{2})(\d{2})", self.persistant['subtitle']) 
+        #Go through all seasons, as TVRage does not provide a search by airdate 
+        seasoncount = int(show.seasons)
+        a = 0
+        while (seasoncount > a):
+          # the range starts with 0 so add 1 
+          try:
+            season = show.season(a+1)
+            episodecount = int(len(season.keys()))
+          except:
+            break
+          a = a+1
+          b = 0
+          while (episodecount > b):
+            # some episodes returned by tvrage have errors... try to catch them
+            try:
+              episode = show.season(a+1).episode(b)
+              if episode.airdate.strftime("%Y%m%d") == myairdate.group(0):
+                out.write('Episode match YYYYMMDD  : (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' (' + `a+1` + 'x' + `b` + ') ' + episode.title
+                self.persistant['description'] = episode.summary
+            except:
+              pass
+            b = b+1
+      except:
         pass
 
     # Determine the audioproperties of the video
@@ -798,9 +885,11 @@ class MythNetTvProgram:
   def TVRage(self, showtitle, out=sys.stdout):
     """TVRage -- Get episode information from TVRage"""
 
-    #initialize TVRage api by getting an object for the show
     show = tvrage.api.Show(showtitle)
-  
+    out.write('Show Name: ' + show.name + '\n')
+    out.write('Seasons:   ' + str(show.seasons) + '\n')
+    #showtitle = "The Daily Show with Jon Stewart"
+    
     #loop for all recordings in the database that have the same show name
     for row in self.db.GetRows('SELECT title, subtitle, basename FROM recorded WHERE title LIKE "%s" OR subtitle LIKE "%s";' % (showtitle, showtitle)):
       # try assuming a system of S##E##
@@ -838,8 +927,8 @@ class MythNetTvProgram:
         showseason = int(showseason) + int(series)
         episode = show.season(int(showseason)).episode(int(showepisode))
         episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
-        out.write('Current subtitle: ' + `row['subtitle']` + '\n')
-        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+        out.write('Current S##E## subtitle: ' + `row['subtitle']` + '\n')
+#        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
         out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
       except:
         #out.write('S##E## not found')
@@ -854,8 +943,8 @@ class MythNetTvProgram:
         showseason = int(showseason) + int(series)
         episode = show.season(int(showseason)).episode(int(showepisode))
         episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
-        out.write('Current subtitle: ' + `row['subtitle']` + '\n')
-        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+        out.write('Current ##x## subtitle: ' + `row['subtitle']` + '\n')
+#        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
         out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
       except:
         #out.write('##x## not found')
@@ -869,28 +958,101 @@ class MythNetTvProgram:
         showseason = int(showseason) + int(series)
         episode = show.season(int(showseason)).episode(int(showepisode))
         episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
-        out.write('Current subtitle: ' + `row['subtitle']` + '\n')
-        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+        out.write('Current 1 of X subtitle: ' + `row['subtitle']` + '\n')
+#        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
         out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
       except:
         #out.write('# of # not found')
         pass
       
       try:
-        # now try assuming a system of 1/X
-        showepisode = re.sub('[\\/]{1,2}.*$', '', row['subtitle'])
-        showepisode = re.sub('^.*[ ]', '', showepisode)
-        showseason = 1
-        showseason = int(showseason) + int(series)
-        episode = show.season(int(showseason)).episode(int(showepisode))
-        episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
-        out.write('Current subtitle: ' + `row['subtitle']` + '\n')
-        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
-        out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
+        # what if we have a date lik 2009.01.01?
+        myairdate = re.search("(\d{4}).(\d{2}).(\d{2})", row['subtitle']) 
+        #Go through all seasons, as TVRage does not provide a search by airdate 
+        seasoncount = int(show.seasons)
+        a = 0
+        while (seasoncount > a):
+          # the range starts with 0 so add 1 
+          try:
+            season = show.season(a+1)
+            episodecount = int(len(season.keys()))
+          except:
+            break
+          a = a+1
+          b = 0
+          while (episodecount > b):
+            # some episodes returned by tvrage have errors... try to catch them
+            try:
+              episode = show.season(a+1).episode(b)
+              if episode.airdate.strftime("%Y.%m.%d") == myairdate.group(0):
+                out.write('Episode match YYYY.MM.DD: (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                episodetosubtitle = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' (' + `a+1` + 'x' + `b` + ') ' + episode.title
+                self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+            except:
+              pass
+            b = b+1
       except:
-        #out.write('##/## not found')
         pass
-      
+
+      try:
+        # what if we have a date lik 2009 01 01?
+        myairdate = re.search("(\d{4}) (\d{2}) (\d{2})", row['subtitle']) 
+        #Go through all seasons, as TVRage does not provide a search by airdate 
+        seasoncount = int(show.seasons)
+        a = 0
+        while (seasoncount > a):
+          # the range starts with 0 so add 1 
+          try:
+            season = show.season(a+1)
+            episodecount = int(len(season.keys()))
+          except:
+            break
+          a = a+1
+          b = 0
+          while (episodecount > b):
+            # some episodes returned by tvrage have errors... try to catch them
+            try:
+              episode = show.season(a+1).episode(b)
+              if episode.airdate.strftime("%Y %m %d") == myairdate.group(0):
+                out.write('Episode match YYYY MM DD: (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                episodetosubtitle = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' (' + `a+1` + 'x' + `b` + ') ' + episode.title
+                self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+            except:
+              pass
+            b = b+1
+      except:
+        pass
+        
+      try:
+        # what if we have a date lik 20090101?
+        myairdate = re.search("(\d{4})(\d{2})(\d{2})", row['subtitle']) 
+        #Go through all seasons, as TVRage does not provide a search by airdate 
+        seasoncount = int(show.seasons)
+        a = 0
+        while (seasoncount > a):
+          # the range starts with 0 so add 1 
+          try:
+            season = show.season(a+1)
+            episodecount = int(len(season.keys()))
+          except:
+            break
+          a = a+1
+          b = 0
+          while (episodecount > b):
+            # some episodes returned by tvrage have errors... try to catch them
+            try:
+              episode = show.season(a+1).episode(b)
+              if episode.airdate.strftime("%Y%m%d") == myairdate.group(0):
+                out.write('Episode match YYYYMMDD  : (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                episodetosubtitle = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' (' + `a+1` + 'x' + `b` + ') ' + episode.title
+                self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+            except:
+              pass
+            b = b+1
+      except:
+        pass
+
+
   def titlefix(self, oldtitle, newtitle, out=sys.stdout):
     """titlefix -- fix the current title with a new one """
     # this replaces the old title with the new one, removes any references to the new title form the subtitle
