@@ -928,7 +928,7 @@ class MythNetTvProgram:
         episode = show.season(int(showseason)).episode(int(showepisode))
         episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
         out.write('Current S##E## subtitle: ' + `row['subtitle']` + '\n')
-#        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
         out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
       except:
         #out.write('S##E## not found')
@@ -944,7 +944,7 @@ class MythNetTvProgram:
         episode = show.season(int(showseason)).episode(int(showepisode))
         episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
         out.write('Current ##x## subtitle: ' + `row['subtitle']` + '\n')
-#        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
+        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
         out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
       except:
         #out.write('##x## not found')
