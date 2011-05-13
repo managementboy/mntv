@@ -15,6 +15,7 @@ import sys
 import tempfile
 import time
 import unicodedata
+import fnmatch
 
 import database
 import gflags
@@ -415,39 +416,25 @@ class MythNetTvProgram:
     out.write('Importing %s\n' % filename)
 
     if os.path.isdir(filename):
-      ents = os.listdir(filename)
+      # go through all subdirectories to find RAR files
+      for root, dirnames, ents in os.walk(filename):
+        for counter in fnmatch.filter(ents, '*'):
+          if counter.endswith('.rar'):
+             out.write('Extracting RARs, please wait... ')
+             UnRAR2.RarFile(os.path.join(root, counter)).extract(path=filename)
+             out.write('Extracted %s\n' % counter)
+      
       handled = False
 
-      if len(ents) == 1:
-        # Only one file in a subdirectory
-        filename = '%s/%s' %(filename, ents[0])
-        out.write('Picked %s from the directory\n' % filename)
-        handled = True
-
-      # if the directory contains RAR files extract them, just in case 
-      for ent in ents:
-        for extn in ['.rar', '.RAR']:
-          if ent.endswith(extn):
-            rarname = '%s/%s' %(filename, ent)
-            UnRAR2.RarFile(rarname).extract(path=filename)
-            out.write('Extracted %s in the directory\n' % rarname)
-
-      ents = os.listdir(filename)
-      # try to find video files in subdirectories
-      videos = []            
-      for ent in ents:
-        for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
-          if ent.endswith(extn):
-            videos.append(ent)
-            filename = '%s/%s' %(filename, videos[0])
-            out.write('Picked %s from the directory\n' % filename)
-            handled = True
-
-    # if len(videos) == 1:
-        # One video file
-      # filename = '%s/%s' %(filename, videos[0])
-      # out.write('Picked %s from the directory\n' % filename)
-      # handled = True
+      # go throuhg all sundirectories again, to find video files
+      out.write('Searching for videofiles in %s' % filename)
+      for root, dirnames, ents in os.walk(filename):
+        for counter in fnmatch.filter(ents, '*'):
+          for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
+            if counter.endswith(extn):
+              filename = os.path.join(root, counter)
+              out.write('Picked %s from the directory\n' % filename)
+              handled = True
 
       if not handled:
         raise DirectoryException(self.db,
@@ -604,6 +591,35 @@ class MythNetTvProgram:
             try:
               episode = show.season(a+1).episode(b)
               if episode.airdate.strftime("%Y%m%d") == myairdate.group(0):
+                out.write('Episode match YYYYMMDD  : (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' (' + `a+1` + 'x' + `b` + ') ' + episode.title
+                self.persistant['description'] = episode.summary
+            except:
+              pass
+            b = b+1
+      except:
+        pass
+        
+      try:
+        # what if we have a date like 2009-01-01?
+        myairdate = re.search("(\d{4})-(\d{2})-(\d{2})", self.persistant['subtitle']) 
+        #Go through all seasons, as TVRage does not provide a search by airdate 
+        seasoncount = int(show.seasons)
+        a = 0
+        while (seasoncount > a):
+          # the range starts with 0 so add 1 
+          try:
+            season = show.season(a+1)
+            episodecount = int(len(season.keys()))
+          except:
+            break
+          a = a+1
+          b = 0
+          while (episodecount > b):
+            # some episodes returned by tvrage have errors... try to catch them
+            try:
+              episode = show.season(a+1).episode(b)
+              if episode.airdate.strftime("%Y-%m-%d") == myairdate.group(0):
                 out.write('Episode match YYYYMMDD  : (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' (' + `a+1` + 'x' + `b` + ') ' + episode.title
                 self.persistant['description'] = episode.summary

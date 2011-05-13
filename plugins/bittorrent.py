@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 # Copyright (C) Michael Still (mikal@stillhq.com) 2006, 2007, 2008, 2009
+# Copyright (C) Elkin Fricke (managementboy@gmail.com) 2011
 # Released under the terms of the GNU GPL v2
 
 import commands
@@ -10,6 +11,8 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
+import re
 
 
 FLAGS = gflags.FLAGS
@@ -34,13 +37,22 @@ def Download(torrent_filename, tmpname, info_func,
      upload_rate:      (int)      limit the upload speed
      verbose:          (boolean)  dump a bunch of debug info as well
   """
+  
+  dir = tmpname
+  out.write('Create new temporary directory... ')  
+  if not os.path.exists(dir):
+    os.makedirs(dir)
+    out.write('done!\n')
+  else:
+    out.write('Strange, it is already there!\n') 
 
   out.write('Now fetching the bittorrent data\n')
   download_ok = False
+  
   try:
-    cmd = '/usr/bin/btdownloadheadless.bittornado ' \
-          '--max_upload_rate %s ' \
-          '--display_interval 5 --spew 1 --saveas %s %s ' \
+    cmd = '/usr/bin/transmission-cli ' \
+          '-u %s ' \
+          '-w %s %s ' \
           %(upload_rate, tmpname, torrent_filename)
     po = subprocess.Popen(cmd, shell=True, bufsize=1,
                           stdout=subprocess.PIPE,
@@ -56,27 +68,23 @@ def Download(torrent_filename, tmpname, info_func,
       if verbose:
         print line
 
-      if line.startswith('time left'):
-        info_func(line)
+      if re.search(': moving "', line):
+        out.write('Done! Waiting 60 seconds for transmission to settle\n')
+        time.sleep(60)
+        download_ok = True
+        break
 
-        if line.endswith('Download Failed!'):
-          out.write('Detected failed download\n')
+      if re.search('0 of 0 peers', line):
+        wait_time = datetime.datetime.now() - start_time
+        out.write('Have waited %d seconds\n'
+                  %(wait_time.seconds))
+        if wait_time.seconds > 600:
+          out.write('Waited %s for download to start. Giving up.\n'
+                    % wait_time)
           break
-        elif line.endswith(':'):
-          wait_time = datetime.datetime.now() - start_time
-          out.write('Have waited %s (%d seconds)\n'
-                    %(wait_time, wait_time.seconds))
-          if wait_time.seconds > 600:
-            out.write('Waited %s for download to start. Giving up.\n'
-                      % wait_time)
-            break
-        elif line.endswith('Download Succeeded!'):
-          out.write('Done!\n')
-          download_ok = True
-          break
-        elif line.endswith('<unknown>'):
-          out.write('Download got stuck. Giving up.\n')
-          break
+
+      if re.search('Progress:', line):
+        out.write('%s\n' % line)
 
       line = po.stdout.readline()
 
@@ -88,6 +96,7 @@ def Download(torrent_filename, tmpname, info_func,
   commands.getoutput('for pid in `ps -ef | grep %s | grep -v grep | '
                      'tr -s " " | cut -f 2 -d " "`; do kill -9 $pid; done'
                      % po.pid)
+  
   if not download_ok:
     return 0
     
