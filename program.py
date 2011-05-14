@@ -432,9 +432,10 @@ class MythNetTvProgram:
         for counter in fnmatch.filter(ents, '*'):
           for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
             if counter.endswith(extn):
-              filename = os.path.join(root, counter)
-              out.write('Picked %s from the directory\n' % filename)
-              handled = True
+              if not fnmatch.fnmatch(counter, '*ample*'):
+                filename = os.path.join(root, counter)
+                out.write('Picked %s from the directory\n' % filename)
+                handled = True
 
       if not handled:
         raise DirectoryException(self.db,
@@ -960,6 +961,7 @@ class MythNetTvProgram:
         episode = show.season(int(showseason)).episode(int(showepisode))
         episodetosubtitle = `episode.season` + 'x' + `episode.number` + ' ' + `episode.title`
         out.write('Current ##x## subtitle: ' + `row['subtitle']` + '\n')
+        out.write(episode.summary)
         self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
         out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
       except:
