@@ -1,16 +1,10 @@
-Bittorrent support in MythNetTv is implemented using bittornado, as it had the
-most parsable output of the clients I tried. Parsing is needed because
-bittorrent clients don't exit at the end of the download -- they keep serving
-the file out. MythNetTv therefore needs to detect a finished download and
-kill the bittorrent process.
+Bittorrent support in MythNetTv was implemented using bittornado, as it had the
+most parsable output of the clients. This version of mythnettv changed that
+by moving the download to transmission as client. It can use DHT and
+includes other nice modern features.
 
-To install bittornado on a Debian system, you do this:
+To install transmission-cli on a Debian system, you do this:
 
-$ sudo apt-get install bittornado
+$ sudo apt-get install transmission-cli
 
-Note that if you intend to download programs using Bittorrent via a cron job,
-you need to fix this rather annoying bug first:
 
-http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=327505
-
-Hopefully this will be fixed in bittornado soon.

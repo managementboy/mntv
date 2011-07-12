@@ -33,7 +33,7 @@ gflags.DEFINE_boolean('db_debugging', False,
                       'Output debugging messages for the database')
 
 
-CURRENT_SCHEMA='21'
+CURRENT_SCHEMA='22'
 HAVE_WARNED_OF_DEFAULTS = False
 
 
@@ -586,6 +586,14 @@ class MythNetTvDatabase:
       self.db_connection.query('alter table mythnettv_programs '
                                'add column last_attempt datetime;')
       self.version = '21'
+
+    if self.version == '21':
+      self.Log('Upgrading schema from 21 to 22')
+      self.db_connection.query('alter table mythnettv_subscriptions '
+                               'add column inetref text;')
+      self.db_connection.query('alter table mythnettv_programs '
+                               'add column inetref text;')
+      self.version = '22'
 
     if self.version != CURRENT_SCHEMA:
       print 'Unknown schema version. This is a bug. Please report it to'

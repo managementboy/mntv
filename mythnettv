@@ -573,7 +573,8 @@ you want to do this?\n\n""")
       prog = program.MythNetTvProgram(db)
       prog.Load(guid)
       out.write('  %s: %s\n' %(prog.GetTitle(), prog.GetSubtitle()))
-      out.write('  (%s)\n\n' % prog.GetDate())
+      out.write('  (%s)\n' % prog.GetDate())
+      out.write('  (%s)\n\n' % guid)
 
       if FLAGS.prompt:
         out.write('Are you sure you want to mark this show as downloaded?'

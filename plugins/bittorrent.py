@@ -13,7 +13,11 @@ import sys
 import tempfile
 import time
 import re
+import stat
 
+#TransmisionClient
+#import TransmissionClient
+import transmissionrpc
 
 FLAGS = gflags.FLAGS
 gflags.DEFINE_string('uploadrate', '',
@@ -42,61 +46,65 @@ def Download(torrent_filename, tmpname, info_func,
   out.write('Create new temporary directory... ')  
   if not os.path.exists(dir):
     os.makedirs(dir)
+    os.chmod(dir,0o777)
     out.write('done!\n')
   else:
-    out.write('Strange, it is already there!\n') 
+    out.write('Strange, it is already there! Please fix.\n') 
+#    return 0
 
   out.write('Now fetching the bittorrent data\n')
   download_ok = False
   
+  tc = transmissionrpc.Client('localhost', port=9091, user='admin', password='admin')
   try:
-    cmd = '/usr/bin/transmission-cli ' \
-          '-u %s ' \
-          '-w %s %s ' \
-          %(upload_rate, tmpname, torrent_filename)
-    po = subprocess.Popen(cmd, shell=True, bufsize=1,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.STDOUT)
-    out.write('Executing: %s (pid %d)\n' %(cmd, po.pid))
+    torrent = tc.add_uri(torrent_filename, download_dir=dir)
+  except transmissionrpc.TransmissionError, e:
+    out.write('Failed to add torrent "%s"' % e)
+    return 0
+  out.write('Added torrent...')
+  tkey = torrent.keys()[0]
+  tc.change(tkey, uploadLimit=upload_rate, uploadLimited=True)
+  stalecounter = 0
+  try:
     start_time = datetime.datetime.now()
-
-    line = po.stdout.readline()
-    while line:
-      line = line.rstrip('\n')
-      line = line.rstrip(' ')
-
-      if verbose:
-        print line
-
-      if re.search(': moving "', line):
-        out.write('Done! Waiting 60 seconds for transmission to settle\n')
-        time.sleep(60)
+    while not download_ok:
+      time.sleep(5)
+      oldprogress = tc.info(tkey)[tkey].progress
+      out.write('%s... ' % tc.info(tkey)[tkey].status)
+      if tc.info(tkey)[tkey].status == 'seeding':
+        out.write('Seeding torrent...')
         download_ok = True
         break
-
-      if re.search('0 of 0 peers', line):
+      
+      # kill download if it does not start after a few minutes
+      if tc.info(tkey)[tkey].progress == 0:
         wait_time = datetime.datetime.now() - start_time
-        out.write('Have waited %d seconds\n'
-                  %(wait_time.seconds))
+        out.write('\nHave waited %s for download to start\n'
+                  %(time.strftime('%H:%M:%S', time.gmtime(wait_time.seconds))))
         if wait_time.seconds > 600:
           out.write('Waited %s for download to start. Giving up.\n'
                     % wait_time)
           break
-
-      if re.search('Progress:', line):
-        out.write('%s\n' % line)
-
-      line = po.stdout.readline()
+      # print the percent of download done if download started
+      if tc.info(tkey)[tkey].progress >= 0:
+        out.write('{:.2%} downloaded\n'.format(tc.info(tkey)[tkey].progress/100))
+     
+      # keep track if the download has gone stale
+      if oldprogress == tc.info(tkey)[tkey].progress:
+        stalecounter = stalecounter + 1
+      
+      if stalecounter == 60:
+        out.write("Download has gone stale... killing the download.\n")
+       # break
 
   except IOError, e:
     raise BitTorrentDownloadException('Error downloading bittorrent data: %s'
                                       % e)
 
-  out.write('Bittorrent download finished, kill download processes\n')
-  commands.getoutput('for pid in `ps -ef | grep %s | grep -v grep | '
-                     'tr -s " " | cut -f 2 -d " "`; do kill -9 $pid; done'
-                     % po.pid)
-  
+  out.write('Bittorrent download finished\n')
+  tc.remove(tkey, delete_data=False, timeout=None)
+  out.write('Torrent stopped\n')
+
   if not download_ok:
     return 0
     
