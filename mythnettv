@@ -140,9 +140,9 @@ def Usage(out):
                       subtitle
 
 (subscription management)
-  subscribe <url> <title>
+  subscribe <url> <title> <inetref>
                     : subscribe to a URL, and specify the show 
-                      title
+                      title and inetref
   list              : list subscriptions
   unsubscribe <url> <title>
 		    : unsubscribe from a feed, and remove feed
@@ -414,7 +414,7 @@ def main(argv, out=sys.stdout):
 
   elif argv[1] == 'subscribe':
     # Subscribe to an RSS feed
-    mythnettvcore.Subscribe(argv[2], argv[3])
+    mythnettvcore.Subscribe(argv[2], argv[3], argv[4])
     out.write('Subscribed to %s\n' % argv[3])
 
   elif argv[1] == 'list':
