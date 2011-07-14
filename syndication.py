@@ -141,6 +141,12 @@ def Sync(db, xmlfile, title, out=sys.stdout):
                       'video/x-m4v', 'video/x-flv', 'video/m4v',
                       'application/x-bittorrent', 'video/msvideo',
                       'video/vnd.objectvideo', 'video/ms-wmv', 'video/mpeg']:
+
+       # very basic subtitle detection
+      if not done and db.GetOneRow('select * from mythnettv_programs '
+                                   'where title=%s and subtitle=%s;' %(db.FormatSqlValue('', title), db.FormatSqlValue('', subtitle))):
+        done = True
+
       if not done and videos.has_key(preferred):
         Download(db,
                  videos[preferred]['url'],

@@ -18,6 +18,8 @@ import stat
 #TransmisionClient
 #import TransmissionClient
 import transmissionrpc
+from transmissionrpc.utils import *
+
 
 FLAGS = gflags.FLAGS
 gflags.DEFINE_string('uploadrate', '',
@@ -87,15 +89,9 @@ def Download(torrent_filename, tmpname, info_func,
           break
       # print the percent of download done if download started
       if tc.info(tkey)[tkey].progress >= 0:
-        out.write('{:.2%} downloaded\n'.format(tc.info(tkey)[tkey].progress/100))
-     
-      # keep track if the download has gone stale
-      if oldprogress == tc.info(tkey)[tkey].progress:
-        stalecounter = stalecounter + 1
-      
-      if stalecounter == 60:
-        out.write("Download has gone stale... killing the download.\n")
-       # break
+        out.write('%.2f%% downloaded' % tc.info(tkey)[tkey].progress)
+        out.write(' of %.2f %s' % format_size(tc.info(tkey)[tkey].leftUntilDone))
+        out.write(' ending %- 13s\n' % tc.info(tkey)[tkey].format_eta())
 
   except IOError, e:
     raise BitTorrentDownloadException('Error downloading bittorrent data: %s'

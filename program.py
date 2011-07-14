@@ -531,20 +531,22 @@ class MythNetTvProgram:
             season = show.season(a+1)
             episodecount = int(len(season.keys()))
           except:
+            out.write('what?')
             break
           a = a+1
-          b = 0
-          while (episodecount > b):
+          b = 1
+          while (episodecount >= b):
             # some episodes returned by tvrage have errors... try to catch them
             try:
-              episode = show.season(a+1).episode(b)
+              episode = show.season(a).episode(b)
               if episode.airdate.strftime("%Y.%m.%d") == myairdate.group(0):
-                out.write('Episode match YYYY.MM.DD: (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                out.write('Episode match YYYY.MM.DD: (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
                 self.persistant['description'] = episode.summary
                 realseason = a+1
                 realepisode = b
             except:
+              out.write('Episode match YYYY.MM.DD: (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
               pass
             b = b+1
       except:
@@ -568,9 +570,9 @@ class MythNetTvProgram:
           while (episodecount > b):
             # some episodes returned by tvrage have errors... try to catch them
             try:
-              episode = show.season(a+1).episode(b)
+              episode = show.season(a).episode(b)
               if episode.airdate.strftime("%Y %m %d") == myairdate.group(0):
-                out.write('Episode match YYYY MM DD: (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                out.write('Episode match YYYY MM DD: (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
                 self.persistant['description'] = episode.summary
                 realseason = a+1
@@ -599,9 +601,9 @@ class MythNetTvProgram:
           while (episodecount > b):
             # some episodes returned by tvrage have errors... try to catch them
             try:
-              episode = show.season(a+1).episode(b)
+              episode = show.season(a).episode(b)
               if episode.airdate.strftime("%Y%m%d") == myairdate.group(0):
-                out.write('Episode match YYYYMMDD  : (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                out.write('Episode match YYYYMMDD  : (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
                 self.persistant['description'] = episode.summary
                 realseason = a+1
@@ -630,9 +632,9 @@ class MythNetTvProgram:
           while (episodecount > b):
             # some episodes returned by tvrage have errors... try to catch them
             try:
-              episode = show.season(a+1).episode(b)
+              episode = show.season(a).episode(b)
               if episode.airdate.strftime("%Y-%m-%d") == myairdate.group(0):
-                out.write('Episode match YYYYMMDD  : (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                out.write('Episode match YYYYMMDD  : (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
                 self.persistant['description'] = episode.summary
                 realseason = a+1
@@ -920,8 +922,9 @@ class MythNetTvProgram:
     """TVRage -- Get episode information from TVRage"""
 
     show = tvrage.api.Show(showtitle)
-    out.write('Show Name: ' + show.name + '\n')
-    out.write('Seasons:   ' + str(show.seasons) + '\n')
+    out.write('Show Name:   ' + show.name + '\n')
+    out.write('Seasons:     ' + str(show.seasons) + '\n')
+    out.write('Last episode:' + str(show.latest_episode) + '\n')
     #showtitle = "The Daily Show with Jon Stewart"
     
     #loop for all recordings in the database that have the same show name
@@ -956,14 +959,13 @@ class MythNetTvProgram:
         pass
 
       # only write to database if set to true      
-      writesql = 1
-
+      writesql = 0
+      
       try:  
         # try assuming a system of S##E##
-        showseason = re.sub('[E]{1,2}.*$', '', seasonepisode)
-        showseason = re.sub('^.*[S]', '', showseason)
-        showepisode = re.sub('^.*[E]', '', seasonepisode)
-        showepisode = re.sub('[ ].*$', '', showepisode)
+        se = re.search("S(\d{2})E(\d{2})", seasonepisode)
+        showseason = int(se.group(1))
+        showepisode = int(se.group(2))
         showseason = int(showseason) + int(series)
         episode = show.season(int(showseason)).episode(int(showepisode))
         episodetosubtitle = `episode.title`
@@ -974,8 +976,25 @@ class MythNetTvProgram:
         out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
         writesql = 1
       except:
-        #out.write('S##E## not found')
         pass
+
+      try:  
+        # try assuming a system of S##E##
+        se = re.search("s(\d{2})e(\d{2})", seasonepisode)
+        showseason = int(se.group(1))
+        showepisode = int(se.group(2))
+        showseason = int(showseason) + int(series)
+        episode = show.season(int(showseason)).episode(int(showepisode))
+        episodetosubtitle = `episode.title`
+        episodeseason = `episode.season`
+        episodenumber = `episode.number`
+        out.write('Current S##E## subtitle: ' + `row['subtitle']` + '\n')
+#        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s, season=%s, episode=%s, originalairdate=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), self.db.FormatSqlValue('', episode.season), self.db.FormatSqlValue('', episode.number), self.db.FormatSqlValue('', episode.airdate), row['basename']))
+        out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
+        writesql = 1
+      except:
+        pass
+
 
       try:
         # now try assuming a system of ##x##
@@ -1008,7 +1027,6 @@ class MythNetTvProgram:
         episode = show.season(int(showseason)).episode(int(showepisode))
         episodetosubtitle = `episode.title`
         out.write('Current 1 of X subtitle: ' + `row['subtitle']` + '\n')
-#        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), row['basename']))
         out.write('Found the folowing show on TVRage: ' + `episode`  + '\n')
 #        writesql = True
       except:
@@ -1029,17 +1047,16 @@ class MythNetTvProgram:
           except:
             break
           a = a+1
-          b = 0
-          while (episodecount > b):
+          b = 1
+          while (episodecount >= b):
             # some episodes returned by tvrage have errors... try to catch them
             try:
-              episode = show.season(a+1).episode(b)
+              episode = show.season(a).episode(b)
               if episode.airdate.strftime("%Y.%m.%d") == myairdate.group(0):
-                out.write('Episode match YYYY.MM.DD: (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                out.write('Episode match YYYY.MM.DD: (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 episodetosubtitle = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
-                episodeseason = a+1
+                episodeseason = a
                 episodenumber = b
-#                self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s, season=%s, episode=%s, originalairdate=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), self.db.FormatSqlValue('', a+1), self.db.FormatSqlValue('', b), self.db.FormatSqlValue('', episode.airdate), row['basename']))
                 writesql = 1
             except:
               pass
@@ -1065,13 +1082,12 @@ class MythNetTvProgram:
           while (episodecount > b):
             # some episodes returned by tvrage have errors... try to catch them
             try:
-              episode = show.season(a+1).episode(b)
+              episode = show.season(a).episode(b)
               if episode.airdate.strftime("%Y %m %d") == myairdate.group(0):
-                out.write('Episode match YYYY MM DD: (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                out.write('Episode match YYYY MM DD: (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 episodetosubtitle = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
-                episodeseason = a+1
+                episodeseason = a
                 episodenumber = b
-#                self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s, season=%s, episode=%s, originalairdate=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), self.db.FormatSqlValue('', season), self.db.FormatSqlValue('', episode), self.db.FormatSqlValue('', episode.airdate), row['basename']))
                 writesql = 1
             except:
               pass
@@ -1097,13 +1113,12 @@ class MythNetTvProgram:
           while (episodecount > b):
             # some episodes returned by tvrage have errors... try to catch them
             try:
-              episode = show.season(a+1).episode(b)
+              episode = show.season(a).episode(b)
               if episode.airdate.strftime("%Y%m%d") == myairdate.group(0):
-                out.write('Episode match YYYYMMDD  : (' + `a+1` + 'x' + `b` + ') ' + `episode.title` + '\n')
+                out.write('Episode match YYYYMMDD  : (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 episodetosubtitle = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
-                episodeseason = a+1
+                episodeseason = a
                 episodenumber = b
-#                self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s, season=%s, episode=%s, originalairdate=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), self.db.FormatSqlValue('', season), self.db.FormatSqlValue('', episode), self.db.FormatSqlValue('', episode.airdate), row['basename']))
                 writesql = 1
             except:
               pass
@@ -1112,9 +1127,11 @@ class MythNetTvProgram:
         pass
 
       if writesql == 1:
-        self.db.ExecuteSql ('update recorded set description=%s, title=%s, subtitle=%s, season=%s, episode=%s, originalairdate=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), self.db.FormatSqlValue('', show.name), self.db.FormatSqlValue('', episodetosubtitle), self.db.FormatSqlValue('', episodeseason), self.db.FormatSqlValue('', episodenumber), self.db.FormatSqlValue('', episode.airdate), row['basename']))
+        self.db.ExecuteSql ('update recorded set description=%s, title="%s", subtitle=%s, season=%s, episode=%s, originalairdate=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), show.name, self.db.FormatSqlValue('', episodetosubtitle), self.db.FormatSqlValue('', episodeseason), self.db.FormatSqlValue('', episodenumber), self.db.FormatSqlValue('', episode.airdate), row['basename']))
       else:
         out.write('Database could not be updated... \n')
+        out.write(row['basename'] + ' ')
+        out.write(row['subtitle'] + '\n')
 
   def titlefix(self, oldtitle, newtitle, out=sys.stdout):
     """titlefix -- fix the current title with a new one """
