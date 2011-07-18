@@ -531,7 +531,6 @@ class MythNetTvProgram:
             season = show.season(a+1)
             episodecount = int(len(season.keys()))
           except:
-            out.write('what?')
             break
           a = a+1
           b = 1
@@ -540,13 +539,13 @@ class MythNetTvProgram:
             try:
               episode = show.season(a).episode(b)
               if episode.airdate.strftime("%Y.%m.%d") == myairdate.group(0):
-                out.write('Episode match YYYY.MM.DD: (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
+#                out.write('Episode match YYYY.MM.DD: (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
                 self.persistant['description'] = episode.summary
-                realseason = a+1
+                realseason = a
                 realepisode = b
             except:
-              out.write('Episode match YYYY.MM.DD: (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
+ #             out.write('Episode match YYYY.MM.DD: (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
               pass
             b = b+1
       except:
@@ -575,7 +574,7 @@ class MythNetTvProgram:
                 out.write('Episode match YYYY MM DD: (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
                 self.persistant['description'] = episode.summary
-                realseason = a+1
+                realseason = a
                 realepisode = b 
             except:
               pass
@@ -606,7 +605,7 @@ class MythNetTvProgram:
                 out.write('Episode match YYYYMMDD  : (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
                 self.persistant['description'] = episode.summary
-                realseason = a+1
+                realseason = a
                 realepisode = b
             except:
               pass

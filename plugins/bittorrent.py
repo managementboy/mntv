@@ -92,7 +92,12 @@ def Download(torrent_filename, tmpname, info_func,
         out.write('%.2f%% downloaded' % tc.info(tkey)[tkey].progress)
         out.write(' of %.2f %s' % format_size(tc.info(tkey)[tkey].leftUntilDone))
         out.write(' ending %- 13s\n' % tc.info(tkey)[tkey].format_eta())
-
+        if tc.info(tkey)[tkey].format_eta() == 'unknown' or tc.info(tkey)[tkey].format_eta() == 'not available':
+          stalecounter = stalecounter + 1
+      if stalecounter == 600:
+        out.write('Download has gone stale... stopping and removing')
+        return 0
+        
   except IOError, e:
     raise BitTorrentDownloadException('Error downloading bittorrent data: %s'
                                       % e)
@@ -103,8 +108,9 @@ def Download(torrent_filename, tmpname, info_func,
 
   if not download_ok:
     return 0
-    
+  time.sleep(30)  
   video_size = 0
+  
   try:
     video_size = os.stat(tmpname).st_size
   except Exception, e:
