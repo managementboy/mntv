@@ -109,11 +109,11 @@ def Sync(db, xmlfile, title, out=sys.stdout):
   # Find the media:content entries
   for entry in parser.entries:
     videos = {}
-    description = entry.description
+    description = utility.massageDescription(entry.description)
     subtitle = entry.title
 
     if entry.has_key('media_description'):
-      description = entry['media_description']
+      description = utility.massageDescription(entry['media_description'])
 
     # Enclosures
     if entry.has_key('enclosures'):
@@ -146,6 +146,8 @@ def Sync(db, xmlfile, title, out=sys.stdout):
       if not done and db.GetOneRow('select * from mythnettv_programs '
                                    'where title=%s and subtitle=%s;' %(db.FormatSqlValue('', title), db.FormatSqlValue('', subtitle))):
         done = True
+        if FLAGS.verbose:
+          out.write(' Dupicate detected %s: %s\n' %(title, subtitle))
 
       if not done and videos.has_key(preferred):
         Download(db,

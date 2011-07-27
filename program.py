@@ -208,7 +208,7 @@ class MythNetTvProgram:
 
     self.persistant['title'] = title
     self.persistant['subtitle'] = subtitle
-    self.persistant['description'] = description
+    self.persistant['description'] = utility.massageDescription(description)
     self.persistant['date'] = date
     self.persistant['unparsed_date'] = date
     self.persistant['parsed_date'] = repr(date_parsed)
@@ -281,7 +281,7 @@ class MythNetTvProgram:
   def Download(self, datadir, force_proxy=None, force_budget=-1,
               out=sys.stdout):
     """Download -- download the show"""
-
+    os.chmod(datadir,0o777)
     one_hour = datetime.timedelta(hours=1)
     one_hour_ago = datetime.datetime.now() - one_hour
 
@@ -414,8 +414,10 @@ class MythNetTvProgram:
     chanid = self.db.GetSetting('chanid')
     filename = '%s/%s' %(datadir, self.persistant['filename'])
     out.write('Importing %s\n' % filename)
+    utility.recursive_file_permissions(filename,-1,-1,0o777)
 
     if os.path.isdir(filename):
+      #os.chmod(filename,0o777)
       # go through all subdirectories to find RAR files
       for root, dirnames, ents in os.walk(filename):
         for counter in fnmatch.filter(ents, '*'):
@@ -433,7 +435,8 @@ class MythNetTvProgram:
           for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
             if counter.endswith(extn):
               if not fnmatch.fnmatch(counter, '*ample*'):
-                filename = os.path.join(root, counter)
+                #filename = os.path.join(root, counter)
+                filename = '%s/%s' %(root, counter)
                 out.write('Picked %s from the directory\n' % filename)
                 handled = True
 
@@ -494,7 +497,7 @@ class MythNetTvProgram:
         episode = show.season(int(showseason)).episode(int(showepisode))
         #self.persistant['title'] = show.title
         self.persistant['subtitle'] = episode.title
-        self.persistant['description'] = episode.summary
+        self.persistant['description'] = utility.massageDescription(episode.summary)
         realseason = episode.season
         realepisode = episode.number
         out.write('Found the show on TVRage\n')
@@ -511,7 +514,7 @@ class MythNetTvProgram:
         episode = show.season(int(showseason)).episode(int(showepisode))
         #self.persistant['title'] = show.title
         self.persistant['subtitle'] = episode.title
-        self.persistant['description'] = episode.summary
+        self.persistant['description'] = utility.massageDescription(episode.summary)
         realseason = episode.season 
         realepisode = episode.number 
         out.write('Found the show on TVRage\n')
@@ -541,7 +544,7 @@ class MythNetTvProgram:
               if episode.airdate.strftime("%Y.%m.%d") == myairdate.group(0):
 #                out.write('Episode match YYYY.MM.DD: (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
-                self.persistant['description'] = episode.summary
+                self.persistant['description'] = utility.massageDescription(episode.summary)
                 realseason = a
                 realepisode = b
             except:
@@ -573,7 +576,7 @@ class MythNetTvProgram:
               if episode.airdate.strftime("%Y %m %d") == myairdate.group(0):
                 out.write('Episode match YYYY MM DD: (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
-                self.persistant['description'] = episode.summary
+                self.persistant['description'] = utility.massageDescription(episode.summary)
                 realseason = a
                 realepisode = b 
             except:
@@ -604,7 +607,7 @@ class MythNetTvProgram:
               if episode.airdate.strftime("%Y%m%d") == myairdate.group(0):
                 out.write('Episode match YYYYMMDD  : (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
-                self.persistant['description'] = episode.summary
+                self.persistant['description'] = utility.massageDescription(episode.summary)
                 realseason = a
                 realepisode = b
             except:
@@ -635,7 +638,7 @@ class MythNetTvProgram:
               if episode.airdate.strftime("%Y-%m-%d") == myairdate.group(0):
                 out.write('Episode match YYYYMMDD  : (' + `a` + 'x' + `b` + ') ' + `episode.title` + '\n')
                 self.persistant['subtitle'] = myairdate.group(1) + '.' + myairdate.group(2) + '.' +  myairdate.group(3) + ' ' + episode.title
-                self.persistant['description'] = episode.summary
+                self.persistant['description'] = utility.massageDescription(episode.summary)
                 realseason = a+1
                 realepisode = b
             except:
@@ -686,7 +689,10 @@ class MythNetTvProgram:
     out.write('Importing video %s...\n' % self.persistant['guid'])
     epoch = time.mktime(datetime.datetime.now().timetuple())
     dest_file = '%d_%s' %(epoch, transcoded_filename.replace(' ', '_'))
-    shutil.move('%s' % transcoded,
+    
+    #changed from move to copy use "find * -mtime +3 -delete" or something
+    #similar to delete old downloads
+    shutil.copy('%s' % transcoded,
                 '%s/%s' %(videodir, dest_file))
 
     # Ensure sensible permissions on the recording that MythTV stores
@@ -700,9 +706,9 @@ class MythNetTvProgram:
     # by the FormatSqlValue() call
     self.db.ExecuteSql('insert into recorded (chanid, starttime, endtime, title, '
                       'subtitle, description, season, episode, hostname, basename, '
-                      'progstart, progend, filesize, autoexpire) values '
+                      'progstart, progend, filesize, inetref, autoexpire) values '
                       '(%s, %s, %s, %s, '
-                      '%s, %s, %s, %s, "%s", "%s", %s, %s, %s, 1)'
+                      '%s, %s, %s, %s, "%s", "%s", %s, %s, %s, %s, 1)'
                       %(chanid,
                         self.db.FormatSqlValue('', start),
                         self.db.FormatSqlValue('', finish),
@@ -719,7 +725,8 @@ class MythNetTvProgram:
                         dest_file,
                         self.db.FormatSqlValue('', start),
                         self.db.FormatSqlValue('', finish),
-                        self.db.FormatSqlValue('', self.persistant['size'])))
+                        self.db.FormatSqlValue('', self.persistant['size']),
+                        self.db.FormatSqlValue('', '')))
 
     self.db.ExecuteSql('insert into recordedprogram (chanid, starttime, endtime, '
                       'title, subtitle, description, category, category_type, '
@@ -788,6 +795,18 @@ class MythNetTvProgram:
       self.db.ExecuteSql('update recorded set recgroup="%s" where '
                         'basename="%s";'
                         %(row['recgroup'], dest_file))
+    
+    # Ditto the inetref
+    row = self.db.GetOneRow('select * from mythnettv_subscriptions where '
+                            'title="%s";'
+                            % self.persistant['title'])
+
+    if row:
+      out.write('Setting the inetref to %s\n' % row['inetref'])
+      self.db.ExecuteSql('update recorded set inetref="%s" where '
+                        'basename="%s";'
+                        %(row['inetref'], dest_file))
+
 
 #    out.write('Rebuilding seek table\n')
 #    commands.getoutput('mythtranscode --mpeg2 --buildindex --allkeys --infile "%s/%s"'
@@ -928,7 +947,6 @@ class MythNetTvProgram:
     
     #loop for all recordings in the database that have the same show name
     for row in self.db.GetRows('SELECT title, subtitle, basename FROM recorded WHERE title LIKE "%s" OR subtitle LIKE "%s";' % (showtitle, showtitle)):
-      # try assuming a system of S##E##
       seasonepisode = row['subtitle']
       episodetosubtitle = ''
       episodeseason = 0
@@ -1126,7 +1144,7 @@ class MythNetTvProgram:
         pass
 
       if writesql == 1:
-        self.db.ExecuteSql ('update recorded set description=%s, title="%s", subtitle=%s, season=%s, episode=%s, originalairdate=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episode.summary), show.name, self.db.FormatSqlValue('', episodetosubtitle), self.db.FormatSqlValue('', episodeseason), self.db.FormatSqlValue('', episodenumber), self.db.FormatSqlValue('', episode.airdate), row['basename']))
+        self.db.ExecuteSql ('update recorded set description=%s, title="%s", subtitle=%s, season=%s, episode=%s, originalairdate=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', utility.massageDescription(episode.summary)), show.name, self.db.FormatSqlValue('', episodetosubtitle), self.db.FormatSqlValue('', episodeseason), self.db.FormatSqlValue('', episodenumber), self.db.FormatSqlValue('', episode.airdate), row['basename']))
       else:
         out.write('Database could not be updated... \n')
         out.write(row['basename'] + ' ')
