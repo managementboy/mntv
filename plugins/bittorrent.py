@@ -20,6 +20,10 @@ import stat
 import transmissionrpc
 from transmissionrpc.utils import *
 
+#needed for hashing 
+import base64 
+import bencode
+import hashlib
 
 FLAGS = gflags.FLAGS
 gflags.DEFINE_string('uploadrate', '',
@@ -43,7 +47,7 @@ def Download(torrent_filename, tmpname, info_func,
      upload_rate:      (int)      limit the upload speed
      verbose:          (boolean)  dump a bunch of debug info as well
   """
-  
+  tkey = -1  
   dir = tmpname
   out.write('Create new temporary directory... ')  
   if not os.path.exists(dir):
@@ -58,13 +62,25 @@ def Download(torrent_filename, tmpname, info_func,
   download_ok = False
   
   tc = transmissionrpc.Client('localhost', port=9091, user='admin', password='admin')
-  try:
-    torrent = tc.add_uri(torrent_filename, download_dir=dir)
-  except transmissionrpc.TransmissionError, e:
-    out.write('Failed to add torrent "%s"' % e)
-    return 0
-  out.write('Added torrent...')
-  tkey = torrent.keys()[0]
+
+  torrent_file = open(torrent_filename)
+  metainfo = bencode.bdecode(torrent_file.read())
+  info = metainfo['info']
+
+  #check if torrent is already being downloaded
+  for keys in tc.info():
+    if tc.info(keys)[keys].fields['hashString'] == hashlib.sha1(bencode.bencode(info)).hexdigest():
+      out.write('The torrent is being downloaded by transmission. No need to add it again.\n')
+      tkey = keys
+  if tkey == -1:
+    try:
+      torrent = tc.add_uri(torrent_filename, download_dir=dir)
+      out.write('Added torrent...')
+      tkey = torrent.keys()[0]
+    except transmissionrpc.TransmissionError, e:
+      out.write('Failed to add torrent "%s"' % e)
+      return 0
+
   tc.change(tkey, uploadLimit=upload_rate, uploadLimited=True)
   stalecounter = 0
   try:
