@@ -697,6 +697,11 @@ you want to do this?\n\n""")
     prog = program.MythNetTvProgram(db)
     prog.titlefix(oldtitle, newtitle)
 
+  elif argv[1] == 'sepfix':
+    title = GetPossible(argv, 2)
+    prog = program.MythNetTvProgram(db)
+    prog.sepfix(title)
+
   else:
     Usage(out)
 

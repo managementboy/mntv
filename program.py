@@ -1157,3 +1157,32 @@ class MythNetTvProgram:
       self.db.ExecuteSql ('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s";' % (newtitle, newtitle, oldtitle))
     else:
       self.db.ExecuteSql ('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s" AND subtitle LIKE "%%%s%%";' % (newtitle, newtitle, oldtitle, newtitle))
+
+  def sepfix(self, title, out=sys.stdout):
+    """sepfix -- fix the season and episode data by trying to guess it from subtitle """
+    #loop for all recordings in the database that have the same show name
+    writesql = 0
+    for row in self.db.GetRows('SELECT title, subtitle, basename FROM recorded WHERE title LIKE "%s";' % (title)):
+      seasonepisode = row['subtitle']
+      episodeseason = 0
+      episodenumber = 0
+      try:
+        # try assuming a system of S##E##
+        se = re.search("S(\d{2})E(\d{2})", seasonepisode)
+        episodeseason = int(se.group(1))
+        episodenumber = int(se.group(2))
+        writesql = 1
+      except:
+        pass
+      try:
+        # now try assuming a system of ##x##
+        se = re.search("(\d{1,2})x(\d{2})", seasonepisode)
+        episodeseason = int(se.group(1))
+        episodenumber = int(se.group(2))
+        writesql = 1
+      except:
+        pass
+      if writesql == 1:
+        self.db.ExecuteSql ('update recorded set season=%s, episode=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', episodeseason), self.db.FormatSqlValue('', episodenumber), row['basename']))
+      else:
+        out.write('Database could not be updated... \n')
