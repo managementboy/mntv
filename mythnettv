@@ -199,12 +199,13 @@ def Usage(out):
 
 (metadata)
   tvrage <title> <ragetvtitle>
+  ttvdb <title>
                     : update all recordings that match the title
                       with the subtitle and description
-                      found on TVRage.
+                      found on TVRage/TTVDB.
                       Current subtitle must contain the season
                       and episode in a format like S##E##
-                      or ##/##
+                      or ##x##
   updatemeta <filename>  : guess the subtitle and video
                       type of a recording by analyzing it with                      
                       mplayer and update the recorded EPG data
@@ -690,6 +691,11 @@ you want to do this?\n\n""")
     showtitle = GetPossible(argv, 2)
     prog = program.MythNetTvProgram(db)
     prog.TVRage(showtitle)
+  
+  elif argv[1] == 'ttvdb':
+    showtitle = GetPossible(argv, 2)
+    prog = program.MythNetTvProgram(db)
+    prog.TTVDB(showtitle)
 
   elif argv[1] == 'titlefix':
     oldtitle = GetPossible(argv, 2)

@@ -818,7 +818,7 @@ class MythNetTvProgram:
         se = series.ExtractSeasonEpisode(seasonepisode)
         titledescription = series.TVRageSeasonEpisode(showtitle, se[0] + season, se[1])
         out.write('Found %s %s %s %s\n' % (showtitle, titledescription[0], se[0] + season, se[1]))
-        self.db.ExecuteSql ('update recorded set description="%s", title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (titledescription[1], showtitle, titledescription[0], se[0], se[1], row['basename']))
+        self.db.ExecuteSql ('update recorded set description="%s", title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (titledescription[1], showtitle, titledescription[0], se[0] + season, se[1], row['basename']))
       except:
         pass
       try:
@@ -829,6 +829,45 @@ class MythNetTvProgram:
       except:
         pass
 
+  def TTVDB(self, showtitle, out=sys.stdout):
+    """TTVDB -- Get episode information from The TV database"""
+   
+    season = 0
+    #loop for all recordings in the database that have the same show name
+    for row in self.db.GetRows('SELECT title, subtitle, basename FROM recorded WHERE title LIKE "%s" OR subtitle LIKE "%s";' % (showtitle, showtitle)):
+      seasonepisode = row['subtitle']
+      matchme = ["[Ss]eason (\d{1})", "[Ss]eason(\d{1})", "[Ss]eries (\d{1})", "[Ss]eries(\d{1})"]
+      for search in matchme:
+        try:
+          season = int(re.search(search, seasonepisode).group(1)) - 1
+          out.write("Found an aditional Season or Series within the subtitle: will add %s\n" % season)
+        except:
+          pass
+      out.write("Getting show from The TV database... ")
+      try:
+        se = series.ExtractSeasonEpisode(seasonepisode)
+        titledescription = series.TTVDBSeasonEpisode(showtitle, se[0] + season, se[1])
+        out.write('Found %s %s %s %s inetref: %s\n' % (showtitle, titledescription[0], se[0] + season, se[1], titledescription[2]))
+        # only update those values we got non Null
+        if titledescription[0]:
+          self.db.ExecuteSql ('update recorded set subtitle="%s" WHERE basename = "%s";' % (titledescription[0], row['basename']))
+        if titledescription[1]:
+          self.db.ExecuteSql ('update recorded set description="%s" WHERE basename = "%s";' % (titledescription[1], row['basename']))
+        if titledescription[2]:
+          self.db.ExecuteSql ('update recorded set inetref=%s WHERE basename = "%s";' % (titledescription[2], row['basename']))
+        if se[0]:
+          self.db.ExecuteSql ('update recorded set season=%s WHERE basename = "%s";' % (se[0] + season, row['basename']))
+        if se[1]:
+          self.db.ExecuteSql ('update recorded set episode=%s WHERE basename = "%s";' % (se[1], row['basename']))
+      except:
+        pass
+      try:
+        se = series.ExtractDate(seasonepisode)
+        titledescription = series.TVRageDate(showtitle, se[0], se[1], se[2])
+        out.write('Found %s %s %s %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3]))
+        self.db.ExecuteSql ('update recorded set description="%s", tite="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', titledescription[1]), showtitle, titledescription[0], titledescription[2], titledescription[3], row['basename']))
+      except:
+        pass
 
   def titlefix(self, oldtitle, newtitle, out=sys.stdout):
     """titlefix -- fix the current title with a new one """

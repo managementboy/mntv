@@ -7,6 +7,7 @@ import re
 import sys
 import tvrage.api
 import utility
+import tvdb_api
 from datetime import date
 
 def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
@@ -57,9 +58,9 @@ def TVRageSeasonEpisode(title, season, episode, out=sys.stdout):
   """ TVRageSeasonEpisode -- Get and format subtitle and description from TVRage based on a season and episode"""
   try:
     #get the TVrage show information
-    tvrageshow = tvrage.api.Show(title)
+    tvshow = tvrage.api.Show(title)
     #then get the TVrage Episode information
-    tvrageepisode = tvrageshow.season(season).episode(episode)
+    tvrageepisode = tvshow.season(season).episode(episode)
     #return subtitle and description
     return tvrageepisode.title, utility.massageDescription(tvrageepisode.summary)
   except:
@@ -69,16 +70,32 @@ def TVRageDate(title, year, month, day, out=sys.stdout):
   """ TVRageDate -- Get and format subtitle and description from TVRage based on a date"""
   try:
     #get the TVrage show information
-    tvrageshow = tvrage.api.Show(title)
+    tvshow = tvrage.api.Show(title)
     #then get the TVrage Episode information
-    seasoncount = int(tvrageshow.seasons)
+    seasoncount = int(tvshow.seasons)
     while (seasoncount > 0):
-      season = tvrageshow.season(seasoncount)
+      season = tvshow.season(seasoncount)
       for episodes in season:
-        if tvrageshow.season(seasoncount).episode(episodes).airdate == date(year, month, day):
-          subtitle = date(year, month, day).strftime("%Y.%m.%d") + ' ' + tvrageshow.season(seasoncount).episode(episodes).title
+        if tvshow.season(seasoncount).episode(episodes).airdate == date(year, month, day):
+          subtitle = date(year, month, day).strftime("%Y.%m.%d") + ' ' + tvshow.season(seasoncount).episode(episodes).title
           #return subtitle and description
-          return subtitle, utility.massageDescription(tvrageshow.season(seasoncount).episode(episodes).summary), tvrageshow.season(seasoncount).episode(episodes).season, tvrageshow.season(seasoncount).episode(episodes).number
+          return subtitle, utility.massageDescription(tvshow.season(seasoncount).episode(episodes).summary), tvshow.season(seasoncount).episode(episodes).season, tvshow.season(seasoncount).episode(episodes).number
       seasoncount = seasoncount - 1
+  except:
+    return 0
+
+def TTVDBSeasonEpisode(title, season, episode, out=sys.stdout):
+  """ TTVDBSeasonEpisode -- Get and format subtitle and description from The TV Database based on a season and episode"""
+  try:
+    #get the TVrage show information
+    tvshow = tvdb_api.Tvdb()
+    #then get the TVrage Episode information
+    tvrageepisode = tvshow[title][season][episode]
+    #return subtitle and description
+    try:
+      description = utility.massageDescription(tvrageepisode['overview'].encode('latin-1','ignore'))
+    except:
+      description = tvrageepisode['overview']
+    return tvrageepisode['episodename'], description, tvrageepisode['seriesid']
   except:
     return 0
