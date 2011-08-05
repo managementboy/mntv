@@ -13,7 +13,7 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
   """ExtractSeasonEpisode -- extract the season and episode number from a string and return these as integers"""
   
   # this list contains the regular expression that would find both the season and episode
-  matchme = ["s(\d{2})e(\d{2})", "S(\d{2})E(\d{2})", "(\d{2})x(\d{2})", "(\d{1})x(\d{2})"]
+  matchme = ["s(\d{2})e(\d{2})", "S(\d{2})E(\d{2})", "(\d{2})x(\d{2})", "(\d{1})x(\d{2})", "(\d{1})x(\d{1})"]
   
   # iterate through each regular expression to find the actual integer value
   for search in matchme:

@@ -697,7 +697,7 @@ you want to do this?\n\n""")
     prog = program.MythNetTvProgram(db)
     prog.titlefix(oldtitle, newtitle)
 
-  elif argv[1] == 'sepfix':
+  elif argv[1] == 'sefix':
     title = GetPossible(argv, 2)
     prog = program.MythNetTvProgram(db)
     prog.sepfix(title)
