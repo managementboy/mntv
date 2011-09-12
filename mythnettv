@@ -95,8 +95,9 @@ def Usage(out):
   markread <num> <title filter> <subtitle filter>
                     : the same as above, but with a regexp title
                       filter as well
-  markunread <num>  : interactively mark some of the youngest <num>
-                      shows as not already downloaded and imported
+  markunread <num> <title filter> : interactively mark some of the 
+                      youngest <num> shows as not already downloaded
+                      and imported filtered by actual title.
 
   resetattempts     : interactively reset the number of attempts
                       for matching programs to zero. This will
@@ -127,6 +128,7 @@ def Usage(out):
                       treated as a torrent. This is useful when
                       MythNetTV doesn't automatically detect
                       that the URL is to a torrent file.
+                      short version: imptor
   importlocal <file>: import the named file, using the title, 
                       subtitle and description from the command
                       line. The file will be left on disk.
@@ -180,6 +182,7 @@ def Usage(out):
 
 (reporting)
   statistics        : show some simple statistics about MythNetTV
+                      short form: stats
   log               : dump the current internal log entries
   nextdownload <num>
                     : if you executed download <num>, what would
@@ -353,7 +356,7 @@ def main(argv, out=sys.stdout):
     description = GetPossible(argv, 5)
     prog.FromInteractive(url, title, subtitle, description)
 
-  elif argv[1] == 'importremote' or argv[1] == 'importtorrent':
+  elif argv[1] == 'importremote' or argv[1] == 'importtorrent' or argv[1] == 'imptor':
     # Download a remote file and then import it as a program. We have to
     # prompt for details here, because this didn't come from a "real" RSS feed
     prog = program.MythNetTvProgram(db)
@@ -500,7 +503,7 @@ def main(argv, out=sys.stdout):
                                                 'http_proxy': argv[3],
                                                 'daily_budget': budget})
 
-  elif argv[1] == 'statistics':
+  elif argv[1] == 'statistics' or argv[1] == 'stats':
     # Display some simple stats about the state of MythMYTHNETTV
 #    row = db.GetOneRow('select count(guid) from mythnettv_programs;')
 #    out.write('Programs tracked: %d\n' % row['count(guid)'])
@@ -592,10 +595,11 @@ you want to do this?\n\n""")
 
   elif argv[1] == 'markunread':
     for row in db.GetRows('select guid from mythnettv_programs where '
-                          'download_finished=1 or imported=1 or '
-                          'attempts is not null or failed=1 '
+                          '(download_finished=1 or imported=1 or '
+                          'attempts is not null or failed=1 )'
+                          'and title LIKE %s'
                           'order by date desc limit %d;'
-                          % int(argv[2])):
+                          % (db.FormatSqlValue('', argv[3]), int(argv[2]))):
       prog = program.MythNetTvProgram(db)
       prog.Load(row['guid'])
       out.write('  %s: %s\n' %(prog.GetTitle(), prog.GetSubtitle()))
@@ -707,7 +711,18 @@ you want to do this?\n\n""")
     title = GetPossible(argv, 2)
     prog = program.MythNetTvProgram(db)
     prog.sepfix(title)
+  
+  elif argv[1] == 'titlesubtitlefix':
+    db.ExecuteSql ('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s" AND subtitle LIKE "%%%s%%";' % (argv[3], argv[3], argv[2], argv[3]))
+#    db.ExecuteSql ('UPDATE recorded SET subtitle = replace(subtitle,"- ","") WHERE title LIKE "%s" AND subtitle LIKE "- %"' % (argv[3], argv[3]))
+    prog = program.MythNetTvProgram(db)
+    prog.TTVDB(argv[3])
 
+  elif argv[1] == 'fix14':
+    prog = program.MythNetTvProgram(db)
+    for row in db.GetRows('SELECT DISTINCT title FROM recorded WHERE subtitle LIKE "1x%" AND season = 1 AND episode = 4'):
+      prog.TTVDB(row['title'])
+    
   else:
     Usage(out)
 

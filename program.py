@@ -430,7 +430,7 @@ class MythNetTvProgram:
       handled = False
 
       # go throuhg all sundirectories again, to find video files
-      out.write('Searching for videofiles in %s' % filename)
+      out.write('Searching for videofiles in %s\n' % filename)
       for root, dirnames, ents in os.walk(filename):
         for counter in fnmatch.filter(ents, '*'):
           for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
@@ -484,10 +484,11 @@ class MythNetTvProgram:
 
     if self.persistant['title'] != 'Internet':
       #try if we can get TVRage information back
-      out.write("Try to get episode data from TVRage...")
+      out.write("Try to get episode data from TVRage or TTVDB...")
       try:
         se = series.ExtractSeasonEpisode(self.persistant['subtitle'])
         titledescription = series.TVRageSeasonEpisode(self.persistant['title'], se[0], se[1])
+        titledescription = series.TTVDBSeasonEpisode(self.persistant['title'], se[0], se[1])
         self.persistant['subtitle'] = titledescription[0]
         self.persistant['description'] = titledescription[1]
         realseason = se[0]
@@ -501,6 +502,8 @@ class MythNetTvProgram:
         self.persistant['description'] = titledescription[1]
         realseason = titledescription[2]
         realepisode = titledescription[3]
+        start = datetime.datetime (se[0], se[1], se[2])
+        finish = start + duration
       except:
         pass
 
@@ -804,7 +807,7 @@ class MythNetTvProgram:
     
     season = 0
     #loop for all recordings in the database that have the same show name
-    for row in self.db.GetRows('SELECT title, subtitle, basename FROM recorded WHERE title LIKE "%s" OR subtitle LIKE "%s";' % (showtitle, showtitle)):
+    for row in self.db.GetRows('SELECT title, subtitle, basename, season, episode FROM recorded WHERE title LIKE "%s" OR subtitle LIKE "%s";' % (showtitle, showtitle)):
       seasonepisode = row['subtitle']
       matchme = ["[Ss]eason (\d{1})", "[Ss]eason(\d{1})", "[Ss]eries (\d{1})", "[Ss]eries(\d{1})"]
       for search in matchme:
@@ -834,7 +837,7 @@ class MythNetTvProgram:
    
     season = 0
     #loop for all recordings in the database that have the same show name
-    for row in self.db.GetRows('SELECT title, subtitle, basename FROM recorded WHERE title LIKE "%s" OR subtitle LIKE "%s";' % (showtitle, showtitle)):
+    for row in self.db.GetRows('SELECT title, subtitle, basename, season, episode FROM recorded WHERE title LIKE "%s" OR subtitle LIKE "%s";' % (showtitle, showtitle)):
       seasonepisode = row['subtitle']
       matchme = ["[Ss]eason (\d{1})", "[Ss]eason(\d{1})", "[Ss]eries (\d{1})", "[Ss]eries(\d{1})"]
       for search in matchme:
@@ -843,9 +846,19 @@ class MythNetTvProgram:
           out.write("Found an aditional Season or Series within the subtitle: will add %s\n" % season)
         except:
           pass
-      out.write("Getting show from The TV database... ")
       try:
-        se = series.ExtractSeasonEpisode(seasonepisode)
+        if re.search("[Ss]eason One", seasonepisode):
+          season = 0
+          out.write("Found an aditional Season or Series within the subtitle: will add %s\n" % season)
+      except:
+        pass
+      out.write("Getting show from The TV database... \n")
+#      se = int(row['season']),int(row['episode'])
+#      se = series.ExtractSeasonEpisode(seasonepisode)
+#      se = int(row['season']),int(row['episode'])
+      out.write(str(se[0]))
+      try:
+        se = series.ExtractSeasonEpisode(seasonepisode)        
         titledescription = series.TTVDBSeasonEpisode(showtitle, se[0] + season, se[1])
         out.write('Found %s %s %s %s inetref: %s\n' % (showtitle, titledescription[0], se[0] + season, se[1], titledescription[2]))
         # only update those values we got non Null
@@ -860,22 +873,20 @@ class MythNetTvProgram:
         if se[1]:
           self.db.ExecuteSql ('update recorded set episode=%s WHERE basename = "%s";' % (se[1], row['basename']))
       except:
+        out.write('did not find...\n')
         pass
       try:
         se = series.ExtractDate(seasonepisode)
-        titledescription = series.TVRageDate(showtitle, se[0], se[1], se[2])
-        out.write('Found %s %s %s %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3]))
-        self.db.ExecuteSql ('update recorded set description="%s", tite="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', titledescription[1]), showtitle, titledescription[0], titledescription[2], titledescription[3], row['basename']))
+        #titledescription = series.TVRageDate(showtitle, se[0], se[1], se[2])
+        #out.write('Found %s %s %s %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3]))
+        #self.db.ExecuteSql ('update recorded set description="%s", title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', titledescription[1]), showtitle, titledescription[0], titledescription[2], titledescription[3], row['basename']))
       except:
         pass
 
   def titlefix(self, oldtitle, newtitle, out=sys.stdout):
     """titlefix -- fix the current title with a new one """
     # this replaces the old title with the new one, removes any references to the new title form the subtitle
-    if oldtitle != 'Internet':
-      self.db.ExecuteSql ('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s";' % (newtitle, newtitle, oldtitle))
-    else:
-      self.db.ExecuteSql ('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s" AND subtitle LIKE "%%%s%%";' % (newtitle, newtitle, oldtitle, newtitle))
+    self.db.ExecuteSql ('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s";' % (newtitle, newtitle, oldtitle))
 
   def sefix(self, title, out=sys.stdout):
     """sepfix -- fix the season and episode data by trying to guess it from subtitle """

@@ -24,6 +24,19 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
       return season, episode
     except:
       pass
+  
+  #similar problem with titles containing "xx of yy"
+  matchme = ["(\d{2})of(\d{2})", "(\d{1})of(\d{2})", "(\d{1})of(\d{1})", "(\d{2})of (\d{2})", "(\d{1})of (\d{2})", "(\d{1})of (\d{1})", "(\d{2})/(\d{2})", "(\d{1})/(\d{2})", "(\d{1})/(\d{1})"]
+  
+  for search in matchme:
+    try:
+      # we need to assume that any such show is always the first season
+      season = 1
+      episode = int(re.search(search, seasonepisode).group(1))
+      return season, episode
+    except:
+      pass
+  
   # if we could not find anything...
   return 0
   
