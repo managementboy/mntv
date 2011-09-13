@@ -282,7 +282,7 @@ class MythNetTvProgram:
   def Download(self, datadir, force_proxy=None, force_budget=-1,
               out=sys.stdout):
     """Download -- download the show"""
-    os.chmod(datadir,0o777)
+#    os.chmod(datadir,0o777)
     one_hour = datetime.timedelta(hours=1)
     one_hour_ago = datetime.datetime.now() - one_hour
 

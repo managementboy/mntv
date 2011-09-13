@@ -1,31 +1,6 @@
-I've been recently wanting a video blog aggregator which integrates with
-MythTV. Specifically, I wanted the videos to appear as recordings. I've
-had a horrible script for that for a few months, but ended up cleaning
-it up when it occurred to me that Akimbo (http://www.akimbo.com) is just
-a per user RSS feed, and something a lot like MythTV.
-
-So, I wrote MythNetTV. It takes RSS feeds, imports the entries in the
-feed and builds a TODO list. It then downloads shows and imports them
-into the MythTV recordings menu.
-
-This implementation has advantages over other RSS readers for MythTV in that
-it:
-
- - ignores the content of the post -- it's all about the video files
- - queues downloads, instead of making them when feeds are added, or new shows
-   are posted (this stops you from running out of disk, or having a huge show
-   backlog)
-
-The code has now been used by a variety of people, but its possible there are
-still bugs. If you want to give it a try, please take good backups. You can 
-find the code here:
-
-http://www.stillhq.com/mythtv/mythnettv/
-
 This file has several sections:
  - Getting started
  - Running from a remote machine
-
 
 Getting started
 ===============
@@ -34,6 +9,15 @@ Before use, you need to make a temporary data directory in your current
 working directory:
 
 $ mkdir data
+
+Make sure you have installed at least these python modules:
+py-unrar2 at https://code.google.com/p/py-unrar2/
+python-tvrage at https://bitbucket.org/ckreutzer/python-tvrage/
+
+If you are going to use BitTorrent you need Transmission:
+$ sudo apt-get install transmission
+and the python module:
+transmissionrpc at https://bitbucket.org/blueluna/transmissionrpc/
 
 You also need to install Mark Pilgrim's Universal Feed Parser from
 http://www.feedparser.org. On Debian or Ubuntu you can install it like this:
@@ -56,8 +40,7 @@ Using MythNetTv is simple. If you want MythNetTv to manage your
 subscriptions, then do something like:
 
 $ ./mythnettv subscribe \
-"http://video.google.com/videofeed?type=search&q=engedu&so=1&num=20&output=rss" \
-"Goole EngEdu"
+"http://www.ted.com/talks/rss" "TEDTalks"
 
 You can update the view of the feed (i.e. find new posts) with:
 
@@ -90,6 +73,3 @@ insert into settings (value, data, hostname) values("RecordFilePrefix", "/data/m
 The path will of course need to change to whereever your recordings are stored.
 At the moment MythNetTV assumes that the recordings directory is NFS mounted,
 so you'll need to set that up as well.
-
-Cheers,
-Mikal (mikal@stillhq.com)
