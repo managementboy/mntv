@@ -18,6 +18,10 @@ If you are going to use BitTorrent you need Transmission:
 $ sudo apt-get install transmission
 and the python module:
 transmissionrpc at https://bitbucket.org/blueluna/transmissionrpc/
+bencode at http://pypi.python.org/pypi/BitTorrent-bencode/5.0.8
+and hashlib
+$ sudo apt-get install python-hashlib
+or at http://docs.python.org/library/hashlib.html
 
 You also need to install Mark Pilgrim's Universal Feed Parser from
 http://www.feedparser.org. On Debian or Ubuntu you can install it like this:

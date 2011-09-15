@@ -9,6 +9,7 @@ import tvrage.api
 import utility
 import tvdb_api
 from datetime import date
+from datetime import datetime
 
 def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
   """ExtractSeasonEpisode -- extract the season and episode number from a string and return these as integers"""
@@ -112,3 +113,25 @@ def TTVDBSeasonEpisode(title, season, episode, out=sys.stdout):
     return tvrageepisode['episodename'], description, tvrageepisode['seriesid']
   except:
     return 0
+
+def TTVDBDate(title, year, month, day, out=sys.stdout):
+  """ TTVDBDate -- Get and format subtitle and description from The TV Database based on a date"""
+
+  try:
+    #get the TTVDB show information
+    ttvdb = tvdb_api.Tvdb()
+    tvshow = ttvdb[title]
+    #then get the TVrage Episode information
+
+    for season in tvshow:
+      for episode in tvshow[season]:
+        try:
+          airdate = datetime.strptime(tvshow[season][episode]['firstaired'], '%Y-%m-%d')
+        except:
+          airdate = datetime(1,1,1)
+        if airdate == datetime(year, month, day):
+          subtitle = datetime(year, month, day).strftime("%Y.%m.%d") + ' ' + tvshow[season][episode]['episodename']
+          #return subtitle and description
+          return subtitle, utility.massageDescription(tvshow[season][episode]['overview']), season, episode
+  except:
+    return 0 

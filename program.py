@@ -482,30 +482,32 @@ class MythNetTvProgram:
     realepisode = 0
     # get show and episode details from TV-Rage, if possible
 
-    if self.persistant['title'] != 'Internet':
-      #try if we can get TVRage information back
-      out.write("Try to get episode data from TVRage or TTVDB...")
-      try:
-        se = series.ExtractSeasonEpisode(self.persistant['subtitle'])
-        titledescription = series.TVRageSeasonEpisode(self.persistant['title'], se[0], se[1])
-        titledescription = series.TTVDBSeasonEpisode(self.persistant['title'], se[0], se[1])
-        self.persistant['subtitle'] = titledescription[0]
-        self.persistant['description'] = titledescription[1]
-        realseason = se[0]
-        realepisode = se[1]
-      except:
-        pass
-      try:
-        se = series.ExtractDate(self.persistant['subtitle'])
-        titledescription = series.TVRageDate(self.persistant['title'], se[0], se[1], se[2])
-        self.persistant['subtitle'] = titledescription[0]
-        self.persistant['description'] = titledescription[1]
-        realseason = titledescription[2]
-        realepisode = titledescription[3]
-        start = datetime.datetime (se[0], se[1], se[2])
-        finish = start + duration
-      except:
-        pass
+    #try if we can get TVRage information back
+    out.write("Try to get episode data from TVRage or TTVDB...")
+    try:
+      se = series.ExtractSeasonEpisode(self.persistant['subtitle'])
+      titledescription = series.TVRageSeasonEpisode(self.persistant['title'], se[0], se[1])
+      titledescription = series.TTVDBSeasonEpisode(self.persistant['title'], se[0], se[1])
+      self.persistant['subtitle'] = titledescription[0]
+      self.persistant['description'] = titledescription[1]
+      realseason = se[0]
+      realepisode = se[1]
+    except:
+      pass
+    # do the same to check if we can find the date in the subtitle
+    try:
+      se = series.ExtractDate(self.persistant['subtitle'])
+      titledescription = series.TVRageDate(self.persistant['title'], se[0], se[1], se[2])
+      titledescription = series.TTVDBDate(self.persistant['title'], se[0], se[1], se[2])
+      self.persistant['subtitle'] = titledescription[0]
+      self.persistant['description'] = titledescription[1]
+      realseason = titledescription[2]
+      realepisode = titledescription[3]
+      # update start and finish if we have the correct date from TVRage
+      start = start.replace (se[0], se[1], se[2])
+      finish = finish.replace (se[0], se[1], se[2])
+    except:
+      pass
 
     # Determine the audioproperties of the video
     audioprop = vid.Audioprop()
@@ -562,6 +564,12 @@ class MythNetTvProgram:
 
     filestats = os.stat('%s/%s' %(videodir, dest_file))
     self.persistant['size'] = filestats [stat.ST_SIZE]
+    
+    if self.persistant['description'] == None:
+      self.persistant['description'] = ''
+    if self.persistant['subtitle'] == None:
+      self.persistant['subtitle'] = ''
+
     # The quotes are missing around the description, because they are added
     # by the FormatSqlValue() call
     self.db.ExecuteSql('insert into recorded (chanid, starttime, endtime, title, '
@@ -588,19 +596,13 @@ class MythNetTvProgram:
                         self.db.FormatSqlValue('', self.persistant['size']),
                         self.db.FormatSqlValue('', '')))
 
+    # insert the most basic date into the recordedprogram table
+    # this is necessary as audio properties etc are found here
     self.db.ExecuteSql('insert into recordedprogram (chanid, starttime, endtime, '
-                      'title, subtitle, description, category, category_type, '
-                      'airdate, stars, previouslyshown, title_pronounce, stereo, '
-                      'subtitled, hdtv, closecaptioned, partnumber, parttotal, '
-                      'seriesid, originalairdate, colorcode, syndicatedepisodenumber, programid, '
-                      'manualid, generic, listingsource, first, last, '
+                      'title, subtitle, description,'
                       'audioprop, subtitletypes, videoprop) values '
                       '(%s, %s, %s, '
-                      '%s, %s, %s, %s, %s, '
-                      '%s, %s, %s, %s, %s, '
-                      '%s, %s, %s, %s, %s, '
-                      '%s, %s, %s, %s, %s, '
-                      '%s, %s, %s, %s, %s, '
+                      '%s, %s, %s, '
                       '%s, %s, %s)'
                       %(chanid,
                         self.db.FormatSqlValue('', start),
@@ -610,28 +612,6 @@ class MythNetTvProgram:
                                 self.persistant['subtitle']),
                         self.db.FormatSqlValue('',
                                 self.persistant['description']),
-                        self.db.FormatSqlValue('', ''),
-                        self.db.FormatSqlValue('', ''),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', ''),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', ''),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', ''),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
                         self.db.FormatSqlValue('', audioprop),
                         self.db.FormatSqlValue('', subtitletypes),
                         self.db.FormatSqlValue('', videoprop)))
@@ -702,7 +682,8 @@ class MythNetTvProgram:
     """SetNew -- make a program look like its new"""
 
     for field in ['download_started', 'download_finished', 'imported',
-                  'filename', 'inactive', 'attempts', 'failed']:
+                  'imported', 'transfered', 'size', 'filename', 
+                  'inactive', 'attempts', 'failed']:
       self.persistant[field] = None
     self.Store()
 
