@@ -7,7 +7,9 @@ import re
 import sys
 import tvrage.api
 import utility
-import tvdb_api
+#import tvdb_api
+import MythTV.ttvdb.tvdb_ui as tvdb_ui
+import MythTV.ttvdb.tvdb_api as tvdb_api
 from datetime import date
 from datetime import datetime
 
@@ -110,7 +112,7 @@ def TTVDBSeasonEpisode(title, season, episode, out=sys.stdout):
       description = utility.massageDescription(tvrageepisode['overview'].encode('latin-1','ignore'))
     except:
       description = tvrageepisode['overview']
-    return tvrageepisode['episodename'], description, tvrageepisode['seriesid']
+    return tvrageepisode['episodename'], description, tvrageepisode['seasonid']
   except:
     return 0
 
@@ -132,6 +134,6 @@ def TTVDBDate(title, year, month, day, out=sys.stdout):
         if airdate == datetime(year, month, day):
           subtitle = datetime(year, month, day).strftime("%Y.%m.%d") + ' ' + tvshow[season][episode]['episodename']
           #return subtitle and description
-          return subtitle, utility.massageDescription(tvshow[season][episode]['overview']), season, episode
+          return subtitle, utility.massageDescription(tvshow[season][episode]['overview']), season, episode, tvshow[season][episode]['seasonid']
   except:
     return 0 

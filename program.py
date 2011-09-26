@@ -480,25 +480,35 @@ class MythNetTvProgram:
     finish = start + duration
     realseason = 0
     realepisode = 0
+    inetref = ''
     # get show and episode details from TV-Rage, if possible
 
     #try if we can get TVRage information back
     out.write("Try to get episode data from TVRage or TTVDB...")
     try:
       se = series.ExtractSeasonEpisode(self.persistant['subtitle'])
-      titledescription = series.TVRageSeasonEpisode(self.persistant['title'], se[0], se[1])
-      titledescription = series.TTVDBSeasonEpisode(self.persistant['title'], se[0], se[1])
+      tvrage = series.TVRageSeasonEpisode(self.persistant['title'], se[0], se[1])
+      ttvdb = series.TTVDBSeasonEpisode(self.persistant['title'], se[0], se[1])
+      if ttvdb:
+        titledescription = ttvdb
+      else:
+        titledescription = tvrage
       self.persistant['subtitle'] = titledescription[0]
       self.persistant['description'] = titledescription[1]
       realseason = se[0]
       realepisode = se[1]
+      inetref = titledescription[2]      
     except:
       pass
     # do the same to check if we can find the date in the subtitle
     try:
       se = series.ExtractDate(self.persistant['subtitle'])
-      titledescription = series.TVRageDate(self.persistant['title'], se[0], se[1], se[2])
-      titledescription = series.TTVDBDate(self.persistant['title'], se[0], se[1], se[2])
+      tvrage = series.TVRageDate(self.persistant['title'], se[0], se[1], se[2])
+      ttvdb = series.TTVDBDate(self.persistant['title'], se[0], se[1], se[2])
+      if ttvdb:
+        titledescription = ttvdb
+      else:
+        titledescription = tvrage
       self.persistant['subtitle'] = titledescription[0]
       self.persistant['description'] = titledescription[1]
       realseason = titledescription[2]
@@ -506,6 +516,7 @@ class MythNetTvProgram:
       # update start and finish if we have the correct date from TVRage
       start = start.replace (se[0], se[1], se[2])
       finish = finish.replace (se[0], se[1], se[2])
+      inetref = titledescription[4]
     except:
       pass
 
@@ -639,9 +650,15 @@ class MythNetTvProgram:
     # Ditto the inetref
     row = self.db.GetOneRow('select * from mythnettv_subscriptions where '
                             'title="%s";'
-                            % self.persistant['title'])
-
-    if row:
+                            % self.persistant['title']) 
+    # if we got an inetref from the TTVDB use it
+    if inetref:
+      out.write('Setting the inetref to %s\n' % inetref)
+      self.db.ExecuteSql('update recorded set inetref="%s" where '
+                        'basename="%s";'
+                        %(inetref, dest_file))
+    # else use the one provided by the subscription
+    elif row:
       out.write('Setting the inetref to %s\n' % row['inetref'])
       self.db.ExecuteSql('update recorded set inetref="%s" where '
                         'basename="%s";'
@@ -802,14 +819,14 @@ class MythNetTvProgram:
         se = series.ExtractSeasonEpisode(seasonepisode)
         titledescription = series.TVRageSeasonEpisode(showtitle, se[0] + season, se[1])
         out.write('Found %s %s %s %s\n' % (showtitle, titledescription[0], se[0] + season, se[1]))
-        self.db.ExecuteSql ('update recorded set description="%s", title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (titledescription[1], showtitle, titledescription[0], se[0] + season, se[1], row['basename']))
+        self.db.ExecuteSql ('update recorded set description=%s, title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (titledescription[1], showtitle, titledescription[0], se[0] + season, se[1], row['basename']))
       except:
         pass
       try:
         se = series.ExtractDate(seasonepisode)
         titledescription = series.TVRageDate(showtitle, se[0], se[1], se[2])
         out.write('Found %s %s %s %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3]))
-        self.db.ExecuteSql ('update recorded set description="%s", tite="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', titledescription[1]), showtitle, titledescription[0], titledescription[2], titledescription[3], row['basename']))
+        self.db.ExecuteSql ('update recorded set description=%s, title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', titledescription[1]), showtitle, titledescription[0], titledescription[2], titledescription[3], row['basename']))
       except:
         pass
 
@@ -834,10 +851,6 @@ class MythNetTvProgram:
       except:
         pass
       out.write("Getting show from The TV database... \n")
-#      se = int(row['season']),int(row['episode'])
-#      se = series.ExtractSeasonEpisode(seasonepisode)
-#      se = int(row['season']),int(row['episode'])
-      out.write(str(se[0]))
       try:
         se = series.ExtractSeasonEpisode(seasonepisode)        
         titledescription = series.TTVDBSeasonEpisode(showtitle, se[0] + season, se[1])
