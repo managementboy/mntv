@@ -109,7 +109,11 @@ def Sync(db, xmlfile, title, out=sys.stdout):
   # Find the media:content entries
   for entry in parser.entries:
     videos = {}
-    description = utility.massageDescription(entry.description)
+    try:
+      description = utility.massageDescription(entry.description)
+    except:
+      description = " "
+
     subtitle = entry.title
 
     if entry.has_key('media_description'):

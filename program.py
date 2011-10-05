@@ -627,6 +627,21 @@ class MythNetTvProgram:
                         self.db.FormatSqlValue('', subtitletypes),
                         self.db.FormatSqlValue('', videoprop)))
 
+    # add aspect to markup table
+    if vid.values['ID_VIDEO_ASPECT']:
+      #aspecttype = 0
+      out.write('Storing aspect ratio: %s\n' % vid.values['ID_VIDEO_ASPECT'])
+      if float(vid.values['ID_VIDEO_ASPECT']) < 1.4:
+        aspecttype = 11
+      elif float(vid.values['ID_VIDEO_ASPECT']) < 1.8:
+        aspecttype = 12
+      elif float(vid.values['ID_VIDEO_ASPECT']) < 2.3:
+        aspecttype = 13 
+        
+      self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
+                         'values (%s, %s, 1, %s, NULL)'
+                         %(chanid, self.db.FormatSqlValue('', start), aspecttype))
+      
     # If there is a category set for this subscription, then set that as well
     row = self.db.GetOneRow('select * from mythnettv_category where '
                             'title="%s";'
@@ -663,24 +678,6 @@ class MythNetTvProgram:
       self.db.ExecuteSql('update recorded set inetref="%s" where '
                         'basename="%s";'
                         %(row['inetref'], dest_file))
-
-
-#    out.write('Rebuilding seek table\n')
-#    commands.getoutput('mythtranscode --mpeg2 --buildindex --allkeys --infile "%s/%s"'
-#                       % (videodir, dest_file))
-
-#    out.write('Creating Thumbnail\n')
-#    commands.getoutput('ffmpegthumbnailer -i "%s/%s" -o "%s/%s.png" -s 0'
-#                      % (videodir, dest_file, videodir, dest_file))
-
-#    if FLAGS.commflag:
-#      out.write('Rebuilding seek table\n')
-#      commands.getoutput('mythcommflag --rebuild --file "%s/%s"'
-#                         % (videodir, dest_file))
-#      
-#     print 'Adding commercial flag job to backend queue'
-#      commands.getoutput('mythcommflag --queue --file "%s/%s"'
-#                         %(videodir, dest_file))
 
     self.SetImported()
     out.write('Done\n\n')
