@@ -7,4 +7,4 @@ To install transmission-cli on a Debian system, you do this:
 
 $ sudo apt-get install transmission-cli
 
-
+Currently the password and login are hard coded  to admin, admin.
