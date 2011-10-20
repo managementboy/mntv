@@ -33,6 +33,10 @@ import UnRAR2
 # parsing will be a problem for plugins when we get there (I think).
 from plugins import bittorrent
 
+# import MythTV bindings... we could test if you have them, but if you don't, why do you need this script?
+from MythTV import OldRecorded, Recorded, RecordedProgram, Record, Channel, \
+                   MythDB, Video, MythVideo, MythBE, MythError, MythLog
+
 from stat import *
 
 
@@ -580,32 +584,49 @@ class MythNetTvProgram:
       self.persistant['description'] = ''
     if self.persistant['subtitle'] == None:
       self.persistant['subtitle'] = ''
+      
+    # add the recording to the database using the MythTV python bindings
+    tmp_recorded={}
+    tmp_recorded[u'chanid'] = chanid
+    tmp_recorded[u'starttime'] = start
+    tmp_recorded[u'endtime'] = finish
+    tmp_recorded[u'title'] = self.persistant['title']
+    tmp_recorded[u'subtitle'] = self.persistant['subtitle']
+    tmp_recorded[u'season'] = realseason
+    tmp_recorded[u'episode'] = realepisode
+    tmp_recorded[u'description'] = self.persistant['description']
+    tmp_recorded[u'progstart'] = start
+    tmp_recorded[u'progend'] = finish
+    tmp_recorded[u'basename'] = dest_file
+    tmp_recorded[u'filesize'] = self.persistant['size']
+    Recorded().create(tmp_recorded)
+    #
 
     # The quotes are missing around the description, because they are added
     # by the FormatSqlValue() call
-    self.db.ExecuteSql('insert into recorded (chanid, starttime, endtime, title, '
-                      'subtitle, description, season, episode, hostname, basename, '
-                      'progstart, progend, filesize, inetref, autoexpire) values '
-                      '(%s, %s, %s, %s, '
-                      '%s, %s, %s, %s, "%s", "%s", %s, %s, %s, %s, 1)'
-                      %(chanid,
-                        self.db.FormatSqlValue('', start),
-                        self.db.FormatSqlValue('', finish),
-                        self.db.FormatSqlValue('', self.persistant['title']),
-                        self.db.FormatSqlValue('',
-                                self.persistant['subtitle']),
-                        self.db.FormatSqlValue('',
-                                self.persistant['description']),
-                        self.db.FormatSqlValue('',
-                                realseason),
-                        self.db.FormatSqlValue('', 
-                                realepisode),
-                        socket.gethostname(),
-                        dest_file,
-                        self.db.FormatSqlValue('', start),
-                        self.db.FormatSqlValue('', finish),
-                        self.db.FormatSqlValue('', self.persistant['size']),
-                        self.db.FormatSqlValue('', '')))
+    #self.db.ExecuteSql('insert into recorded (chanid, starttime, endtime, title, '
+    #                  'subtitle, description, season, episode, hostname, basename, '
+    #                  'progstart, progend, filesize, inetref, autoexpire) values '
+    #                  '(%s, %s, %s, %s, '
+    #                  '%s, %s, %s, %s, "%s", "%s", %s, %s, %s, %s, 1)'
+    #                  %(chanid,
+    #                    self.db.FormatSqlValue('', start),
+    #                    self.db.FormatSqlValue('', finish),
+    #                    self.db.FormatSqlValue('', self.persistant['title']),
+    #                    self.db.FormatSqlValue('',
+    #                            self.persistant['subtitle']),
+    #                    self.db.FormatSqlValue('',
+    #                            self.persistant['description']),
+    #                    self.db.FormatSqlValue('',
+    #                            realseason),
+    #                    self.db.FormatSqlValue('', 
+    #                            realepisode),
+    #                    socket.gethostname(),
+    #                    dest_file,
+    #                    self.db.FormatSqlValue('', start),
+    #                    self.db.FormatSqlValue('', finish),
+    #                    self.db.FormatSqlValue('', self.persistant['size']),
+    #                    self.db.FormatSqlValue('', '')))
 
     # insert the most basic date into the recordedprogram table
     # this is necessary as audio properties etc are found here
