@@ -728,9 +728,11 @@ class MythNetTvProgram:
     tmp_recorded[u'audioprop'] = audioprop
     tmp_recorded[u'subtitletypes'] = subtitletypes
     tmp_recorded[u'videoprop'] = videoprop
+    #FIXME: we could get this from TTVDB
+    tmp_recorded[u'originalairdate'] = '0000-00-00'
 
     # add recordedprogram information using the MythTV python bindings 
-    RecordedProgram().create(recorded)
+    RecordedProgram().create(tmp_recorded)
 
     # Build the seektable
 #    out.write('and lastly rebuilding the seek table... ')
