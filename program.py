@@ -604,6 +604,7 @@ class MythNetTvProgram:
     tmp_recorded[u'progend'] = finish
     tmp_recorded[u'basename'] = dest_file
     tmp_recorded[u'filesize'] = self.persistant['size']
+    tmp_recorded[u'lastmodified'] = datetime.datetime.now()
     Recorded().create(tmp_recorded)
     #
 
