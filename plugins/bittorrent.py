@@ -88,9 +88,9 @@ def Download(torrent_filename, tmpname, info_func,
     while not download_ok:
       time.sleep(5)
       oldprogress = tc.info(tkey)[tkey].progress
-      out.write('%s... ' % tc.info(tkey)[tkey].status)
+      #out.write('%s... ' % tc.info(tkey)[tkey].status)
       if tc.info(tkey)[tkey].status == 'seeding':
-        out.write('Seeding torrent...')
+        #out.write('Seeding torrent...')
         download_ok = True
         break
       
@@ -106,8 +106,9 @@ def Download(torrent_filename, tmpname, info_func,
       # print the percent of download done if download started
       if tc.info(tkey)[tkey].progress >= 0:
         out.write('%.2f%% downloaded' % tc.info(tkey)[tkey].progress)
-        out.write(' of %.2f %s' % format_size(tc.info(tkey)[tkey].leftUntilDone))
-        out.write(' ending %- 13s\n' % tc.info(tkey)[tkey].format_eta())
+        out.write('\t%.2f %s left' % format_size(tc.info(tkey)[tkey].leftUntilDone))
+        out.write('\t\tETA %- 13s\r' % tc.info(tkey)[tkey].format_eta())
+        out.flush()
         if tc.info(tkey)[tkey].format_eta() == 'unknown' or tc.info(tkey)[tkey].format_eta() == 'not available':
           stalecounter = stalecounter + 1
       if stalecounter == 600:
@@ -120,7 +121,7 @@ def Download(torrent_filename, tmpname, info_func,
 
   out.write('Bittorrent download finished\n')
   tc.remove(tkey, delete_data=False, timeout=None)
-  out.write('Torrent stopped\n')
+  out.write('Torrent stopped, waiting a few seconds...\n')
 
   if not download_ok:
     return 0

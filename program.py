@@ -279,11 +279,14 @@ class MythNetTvProgram:
     self.persistant['last_attempt'] = datetime.datetime.now()
     self.Store()
 
-  def Download(self, datadir, force_proxy=None, force_budget=-1,
-              out=sys.stdout):
+  def Download(self, datadir, force_proxy=None, force_budget=-1, out=sys.stdout):
     """Download -- download the show"""
-#    os.chmod(datadir,0o777)
+
     one_hour = datetime.timedelta(hours=1)
+    if self.persistant['url'].endswith('torrent') \
+      or self.persistant.get('mime_type', '').endswith('torrent'):
+      # give torrents more time to download, set to 6 hours
+      one_hour = datetime.timedelta(hours=6)
     one_hour_ago = datetime.datetime.now() - one_hour
 
     out.write('Considering %s: %s\n' %(self.persistant['title'],
@@ -302,6 +305,7 @@ class MythNetTvProgram:
     self.persistant['last_attempt'] = datetime.datetime.now()
 
     filename = self.TemporaryFilename(datadir, out=out)
+
     self.persistant['download_started'] = '1'
     self.Store()
 
@@ -418,7 +422,6 @@ class MythNetTvProgram:
     utility.recursive_file_permissions(filename,-1,-1,0o777)
 
     if os.path.isdir(filename):
-      #os.chmod(filename,0o777)
       # go through all subdirectories to find RAR files
       for root, dirnames, ents in os.walk(filename):
         for counter in fnmatch.filter(ents, '*'):
@@ -426,6 +429,7 @@ class MythNetTvProgram:
              out.write('Extracting RARs, please wait... ')
              UnRAR2.RarFile(os.path.join(root, counter)).extract(path=filename)
              out.write('Extracted %s\n' % counter)
+             break
       
       handled = False
 
@@ -440,6 +444,7 @@ class MythNetTvProgram:
                 filename = '%s/%s' %(root, counter)
                 out.write('Picked %s from the directory\n' % filename)
                 handled = True
+                break
 
       if not handled:
         raise DirectoryException(self.db,
@@ -497,7 +502,7 @@ class MythNetTvProgram:
       self.persistant['description'] = titledescription[1]
       realseason = se[0]
       realepisode = se[1]
-      inetref = titledescription[2]      
+      inetref = titledescription[4]
     except:
       pass
     # do the same to check if we can find the date in the subtitle
@@ -641,7 +646,20 @@ class MythNetTvProgram:
       self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
                          'values (%s, %s, 1, %s, NULL)'
                          %(chanid, self.db.FormatSqlValue('', start), aspecttype))
-      
+    
+    # if the height and/or width of the recording is known, store it in the markuptable
+    if vid.values['ID_VIDEO_HEIGHT']:
+      out.write('Storing height: %s\n' % vid.values['ID_VIDEO_HEIGHT'])
+      self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
+                         'values (%s, %s, 12, 31, %s)'
+                         %(chanid, self.db.FormatSqlValue('', start), vid.values['ID_VIDEO_HEIGHT']))
+    if vid.values['ID_VIDEO_WIDTH']:
+      out.write('Storing width: %s\n' % vid.values['ID_VIDEO_WIDTH'])
+      self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
+                         'values (%s, %s, 12, 30, %s)'
+                         %(chanid, self.db.FormatSqlValue('', start), vid.values['ID_VIDEO_WIDTH']))
+
+
     # If there is a category set for this subscription, then set that as well
     row = self.db.GetOneRow('select * from mythnettv_category where '
                             'title="%s";'
@@ -678,6 +696,11 @@ class MythNetTvProgram:
       self.db.ExecuteSql('update recorded set inetref="%s" where '
                         'basename="%s";'
                         %(row['inetref'], dest_file))
+
+    # Build the seektable
+#    out.write('and lastly rebuilding the seek table... ')
+#    commands.getoutput('mythtranscode -b -q --loglevel err -i "%s/%s"'
+#                       % (videodir, dest_file))
 
     self.SetImported()
     out.write('Done\n\n')
@@ -848,31 +871,37 @@ class MythNetTvProgram:
       except:
         pass
       out.write("Getting show from The TV database... \n")
+      found = False
       try:
         se = series.ExtractSeasonEpisode(seasonepisode)        
         titledescription = series.TTVDBSeasonEpisode(showtitle, se[0] + season, se[1])
-        out.write('Found %s %s %s %s inetref: %s\n' % (showtitle, titledescription[0], se[0] + season, se[1], titledescription[2]))
-        # only update those values we got non Null
+        out.write('Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' % (showtitle, titledescription[0], se[0] + season, se[1], titledescription[2]))
+        found = True
+      except:
+        out.write('did not find by season/episode number...\n')
+        pass
+      if found == False:
+        try:
+          titledescription = series.TTVDBSubtitle(showtitle, seasonepisode)
+          out.write('Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3], titledescription[4]))
+        except:
+          out.write('did not find by subtitle...\n')
+          pass
+      # only update those values we got non Null
+      try:
         if titledescription[0]:
           self.db.ExecuteSql ('update recorded set subtitle="%s" WHERE basename = "%s";' % (titledescription[0], row['basename']))
         if titledescription[1]:
           self.db.ExecuteSql ('update recorded set description="%s" WHERE basename = "%s";' % (titledescription[1], row['basename']))
+        if titledescription[4]:
+          self.db.ExecuteSql ('update recorded set inetref=%s WHERE basename = "%s";' % (titledescription[4], row['basename']))
         if titledescription[2]:
-          self.db.ExecuteSql ('update recorded set inetref=%s WHERE basename = "%s";' % (titledescription[2], row['basename']))
-        if se[0]:
-          self.db.ExecuteSql ('update recorded set season=%s WHERE basename = "%s";' % (se[0] + season, row['basename']))
-        if se[1]:
-          self.db.ExecuteSql ('update recorded set episode=%s WHERE basename = "%s";' % (se[1], row['basename']))
-      except:
-        out.write('did not find...\n')
-        pass
-      try:
-        se = series.ExtractDate(seasonepisode)
-        #titledescription = series.TVRageDate(showtitle, se[0], se[1], se[2])
-        #out.write('Found %s %s %s %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3]))
-        #self.db.ExecuteSql ('update recorded set description="%s", title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', titledescription[1]), showtitle, titledescription[0], titledescription[2], titledescription[3], row['basename']))
+          self.db.ExecuteSql ('update recorded set season=%s WHERE basename = "%s";' % (titledescription[2], row['basename']))
+        if titledescription[3]:
+          self.db.ExecuteSql ('update recorded set episode=%s WHERE basename = "%s";' % (titledescription[3], row['basename']))
       except:
         pass
+
 
   def titlefix(self, oldtitle, newtitle, out=sys.stdout):
     """titlefix -- fix the current title with a new one """

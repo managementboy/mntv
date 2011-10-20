@@ -29,7 +29,7 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
       pass
   
   #similar problem with titles containing "xx of yy"
-  matchme = ["(\d{2})of(\d{2})", "(\d{1})of(\d{2})", "(\d{1})of(\d{1})", "(\d{2})of (\d{2})", "(\d{1})of (\d{2})", "(\d{1})of (\d{1})", "(\d{2})/(\d{2})", "(\d{1})/(\d{2})", "(\d{1})/(\d{1})"]
+  matchme = ["(\d{2})of(\d{2})", "(\d{1})of(\d{2})", "(\d{1})of(\d{1})", "(\d{2})of (\d{2})", "(\d{1})of (\d{2})", "(\d{1})of (\d{1})", "(\d{2}) of (\d{2})", "(\d{1}) of (\d{2})", "(\d{1}) of (\d{1})", "(\d{2})/(\d{2})", "(\d{1})/(\d{2})", "(\d{1})/(\d{1})"]
   
   for search in matchme:
     try:
@@ -111,8 +111,8 @@ def TTVDBSeasonEpisode(title, season, episode, out=sys.stdout):
     try:
       description = utility.massageDescription(tvrageepisode['overview'].encode('latin-1','ignore'))
     except:
-      description = tvrageepisode['overview']
-    return tvrageepisode['episodename'], description, tvrageepisode['seasonid']
+      description = utility.massageDescription(tvrageepisode['overview'])
+    return tvrageepisode['episodename'], description, season, episode, tvrageepisode['seriesid']
   except:
     return 0
 
@@ -134,6 +134,20 @@ def TTVDBDate(title, year, month, day, out=sys.stdout):
         if airdate == datetime(year, month, day):
           subtitle = datetime(year, month, day).strftime("%Y.%m.%d") + ' ' + tvshow[season][episode]['episodename']
           #return subtitle and description
-          return subtitle, utility.massageDescription(tvshow[season][episode]['overview']), season, episode, tvshow[season][episode]['seasonid']
+          return subtitle, utility.massageDescription(tvshow[season][episode]['overview']), season, episode, tvshow[season][episode]['seriesid']
   except:
     return 0 
+
+def TTVDBSubtitle(title, subtitle, out=sys.stdout):
+  """ TTVDBDate -- Get and format subtitle and description from The TV Database based on a show subtitle"""
+
+  try:
+    #get the TTVDB show information
+    ttvdb = tvdb_api.Tvdb()
+    tvshow = ttvdb[title]
+    for season in tvshow:
+      for episode in tvshow[season]:
+        if tvshow[season][episode]['episodename'] == subtitle:
+          return subtitle, utility.massageDescription(tvshow[season][episode]['overview']), season, episode, tvshow[season][episode]['seriesid']
+  except:
+    return 0
