@@ -605,7 +605,6 @@ class MythNetTvProgram:
     tmp_recorded[u'basename'] = dest_file
     tmp_recorded[u'filesize'] = self.persistant['size']
     tmp_recorded[u'lastmodified'] = datetime.datetime.now()
-    Recorded().create(tmp_recorded)
 
     #
 
@@ -731,6 +730,7 @@ class MythNetTvProgram:
     #FIXME: we could get this from TTVDB
     tmp_recorded[u'originalairdate'] = '0000-00-00'
 
+    Recorded().create(tmp_recorded)
     # add recordedprogram information using the MythTV python bindings 
     RecordedProgram().create(tmp_recorded)
 
