@@ -606,6 +606,7 @@ class MythNetTvProgram:
     tmp_recorded[u'filesize'] = self.persistant['size']
     tmp_recorded[u'lastmodified'] = datetime.datetime.now()
     Recorded().create(tmp_recorded)
+
     #
 
     # The quotes are missing around the description, because they are added
@@ -634,25 +635,27 @@ class MythNetTvProgram:
     #                    self.db.FormatSqlValue('', self.persistant['size']),
     #                    self.db.FormatSqlValue('', '')))
 
+    
+
     # insert the most basic date into the recordedprogram table
     # this is necessary as audio properties etc are found here
-    self.db.ExecuteSql('insert into recordedprogram (chanid, starttime, endtime, '
-                      'title, subtitle, description,'
-                      'audioprop, subtitletypes, videoprop) values '
-                      '(%s, %s, %s, '
-                      '%s, %s, %s, '
-                      '%s, %s, %s)'
-                      %(chanid,
-                        self.db.FormatSqlValue('', start),
-                        self.db.FormatSqlValue('', finish),
-                        self.db.FormatSqlValue('', self.persistant['title']),
-                        self.db.FormatSqlValue('',
-                                self.persistant['subtitle']),
-                        self.db.FormatSqlValue('',
-                                self.persistant['description']),
-                        self.db.FormatSqlValue('', audioprop),
-                        self.db.FormatSqlValue('', subtitletypes),
-                        self.db.FormatSqlValue('', videoprop)))
+    #self.db.ExecuteSql('insert into recordedprogram (chanid, starttime, endtime, '
+    #                  'title, subtitle, description,'
+    #                  'audioprop, subtitletypes, videoprop) values '
+    #                  '(%s, %s, %s, '
+    #                  '%s, %s, %s, '
+    #                  '%s, %s, %s)'
+    #                  %(chanid,
+    #                    self.db.FormatSqlValue('', start),
+    #                    self.db.FormatSqlValue('', finish),
+    #                    self.db.FormatSqlValue('', self.persistant['title']),
+    #                    self.db.FormatSqlValue('',
+    #                            self.persistant['subtitle']),
+    #                    self.db.FormatSqlValue('',
+    #                            self.persistant['description']),
+    #                    self.db.FormatSqlValue('', audioprop),
+    #                    self.db.FormatSqlValue('', subtitletypes),
+    #                    self.db.FormatSqlValue('', videoprop)))
 
     # add aspect to markup table
     if vid.values['ID_VIDEO_ASPECT']:
@@ -681,16 +684,16 @@ class MythNetTvProgram:
                          'values (%s, %s, 12, 30, %s)'
                          %(chanid, self.db.FormatSqlValue('', start), vid.values['ID_VIDEO_WIDTH']))
 
-
     # If there is a category set for this subscription, then set that as well
     row = self.db.GetOneRow('select * from mythnettv_category where '
                             'title="%s";'
                             % self.persistant['title'])
     if row:
       out.write('Setting category to %s\n' % row['category'])
-      self.db.ExecuteSql('update recorded set category="%s" where '
-                        'basename="%s";'
-                        %(row['category'], dest_file))
+      tmp_recorded[u'category'] = row['category']
+      #self.db.ExecuteSql('update recorded set category="%s" where '
+      #                  'basename="%s";'
+      #                  %(row['category'], dest_file))
 
     # Ditto the group
     row = self.db.GetOneRow('select * from mythnettv_group where '
@@ -698,9 +701,10 @@ class MythNetTvProgram:
                             % self.persistant['title'])
     if row:
       out.write('Setting recording group to %s\n' % row['recgroup'])
-      self.db.ExecuteSql('update recorded set recgroup="%s" where '
-                        'basename="%s";'
-                        %(row['recgroup'], dest_file))
+      tmp_recorded[u'recgroup'] = row['recgroup']
+      #self.db.ExecuteSql('update recorded set recgroup="%s" where '
+      #                  'basename="%s";'
+      #                  %(row['recgroup'], dest_file))
     
     # Ditto the inetref
     row = self.db.GetOneRow('select * from mythnettv_subscriptions where '
@@ -709,15 +713,24 @@ class MythNetTvProgram:
     # if we got an inetref from the TTVDB use it
     if inetref:
       out.write('Setting the inetref to %s\n' % inetref)
-      self.db.ExecuteSql('update recorded set inetref="%s" where '
-                        'basename="%s";'
-                        %(inetref, dest_file))
+      tmp_recorded[u'inetref'] = inetref
+      #self.db.ExecuteSql('update recorded set inetref="%s" where '
+      #                  'basename="%s";'
+      #                  %(inetref, dest_file))
     # else use the one provided by the subscription
     elif row:
       out.write('Setting the inetref to %s\n' % row['inetref'])
-      self.db.ExecuteSql('update recorded set inetref="%s" where '
-                        'basename="%s";'
-                        %(row['inetref'], dest_file))
+      tmp_recorded[u'inetref'] = row['inetref']
+      #self.db.ExecuteSql('update recorded set inetref="%s" where '
+      #                  'basename="%s";'
+      #                  %(row['inetref'], dest_file))
+      
+    tmp_recorded[u'audioprop'] = audioprop
+    tmp_recorded[u'subtitletypes'] = subtitletypes
+    tmp_recorded[u'videoprop'] = videoprop
+
+    # add recordedprogram information using the MythTV python bindings 
+    RecordedProgram().create(recorded)
 
     # Build the seektable
 #    out.write('and lastly rebuilding the seek table... ')
