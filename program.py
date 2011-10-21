@@ -32,6 +32,7 @@ import UnRAR2
 # Note that plugins aren't actually plugins at the moment, and that flags
 # parsing will be a problem for plugins when we get there (I think).
 from plugins import bittorrent
+from plugins import streamingsites
 
 # import MythTV bindings... we could test if you have them, but if you don't, why do you need this script?
 from MythTV import OldRecorded, Recorded, RecordedProgram, Record, Channel, \
@@ -376,6 +377,13 @@ class MythNetTvProgram:
         self.persistant['filename'] = tmpname.split('/')[-1]
         total += int(self.persistant.get('transfered', 0))
 
+    elif self.persistant['url'].startswith('http://vimeo'):
+      vimeoid = re.search('clip_id=(\d+)', self.persistant['url'])
+      out.write('VimeoID:     %s\n' % vimeoid.group(1))
+      total = streamingsites.Download('Vimeo', vimeoid.group(1), datadir)
+      self.persistant['filename'] = total
+      out.write(total)
+
     elif self.persistant['url'].startswith('http://'):
       total = self.DownloadHTTP(filename, force_proxy=force_proxy,
                                 force_budget=force_budget)
@@ -493,7 +501,6 @@ class MythNetTvProgram:
     # get show and episode details from TV-Rage, if possible
 
     #try if we can get TVRage information back
-    out.write("Try to get episode data from TVRage or TTVDB...")
     try:
       se = series.ExtractSeasonEpisode(self.persistant['subtitle'])
       tvrage = series.TVRageSeasonEpisode(self.persistant['title'], se[0], se[1])
@@ -507,6 +514,7 @@ class MythNetTvProgram:
       realseason = se[0]
       realepisode = se[1]
       inetref = titledescription[4]
+      out.write("Found on TVRage or TTVDB: S%sE%s inetref:%s\n" % (realseason, realepisode, inetref))
     except:
       pass
     # do the same to check if we can find the date in the subtitle
@@ -526,6 +534,7 @@ class MythNetTvProgram:
       start = start.replace (se[0], se[1], se[2])
       finish = finish.replace (se[0], se[1], se[2])
       inetref = titledescription[4]
+      out.write("Found on TVRage or TTVDB: S%sE%s inetref:%s\n" % (realseason, realepisode, inetref))
     except:
       pass
 

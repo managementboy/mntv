@@ -186,6 +186,19 @@ def Sync(db, xmlfile, title, out=sys.stdout):
       done = True
 
     if not done and videos.has_key('application/x-shockwave-flash'):
+      # we now can download vimeo videos
+      if videos['application/x-shockwave-flash']['url'].startswith('http://vimeo'):
+        Download(db,
+                videos['application/x-shockwave-flash']['url'],
+                entry.guid,
+                'application/x-shockwave-flash',
+                title,
+                subtitle,
+                description,
+                entry.date,
+                entry.date_parsed,
+                out=out)
+        done = True
       if not complained_about_swf:
         out.write('%s\n' % repr(videos))
         out.write('Error: SWF is currently unsupported due to ffmpeg and mencoder not supporting compressed SWF files as input. Let mythnettv@stillhq.com know if you are aware of an open source way of transcoding these files.\n\n')
