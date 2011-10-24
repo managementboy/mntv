@@ -382,7 +382,6 @@ class MythNetTvProgram:
       out.write('VimeoID:     %s\n' % vimeoid.group(1))
       total = streamingsites.Download('Vimeo', vimeoid.group(1), datadir)
       self.persistant['filename'] = total
-      out.write(total)
 
     elif self.persistant['url'].startswith('http://'):
       total = self.DownloadHTTP(filename, force_proxy=force_proxy,

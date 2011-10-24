@@ -24,7 +24,7 @@ def Download(site, identifier, datadir):
   download_ok = False
   print 'Downloading "%s"...\n' % video.title
   video.filename = '%s/%s' %(datadir, video.filename)
-  print 'New destination will be %s\n' % video.filename
+
   try:
     video.run()
     download_ok = True
@@ -34,5 +34,6 @@ def Download(site, identifier, datadir):
   
   if not download_ok:
     return 0
-  
+
+  print 'New destination will be %s\n' % video.full_filename  
   return os.path.basename(video.full_filename)
