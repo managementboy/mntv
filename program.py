@@ -58,6 +58,31 @@ class DownloadException(utility.LoggingException):
 class DirectoryException(utility.LoggingException):
   """ Errors in importing a directory """
 
+def addChannel(icon, channel_id, channel_num, callsign, channelname):
+  """ add a new dummy channel to the mythtvbackend  """
+  try:
+    if Channel(channel_id):
+      return False
+  except:
+    pass
+  data={}
+  data['chanid'] = channel_id
+  data['channum'] = str(channel_num)
+  data['freqid'] = str(channel_num)
+  data['atsc_major_chan'] = int(channel_num)
+  data['icon'] = u''
+  if icon != u'':
+    data['icon'] = icon
+  data['callsign'] = callsign
+  data['name'] = channelname
+  data['last_record'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+  try:
+    Channel().create(data)
+  except MythError, e:
+    return False
+
+  return True
+
 
 def SafeForFilename(s):
   """SafeForFilename -- convert s into something which can be used for a 
@@ -427,7 +452,12 @@ class MythNetTvProgram:
     # Determine meta data
     self.db.Log('Importing %s' % self.persistant['guid'])
     datadir = self.db.GetSettingWithDefault('datadir', FLAGS.datadir)
-    chanid = self.db.GetSetting('chanid')
+    chanid = self.db.GetOneRow('select chanid from mythnettv_subscriptions where '
+                            'title="%s";' % self.persistant['title'])
+    if not chanid:
+      chanid = self.db.GetSetting('chanid')
+    else:
+      chanid = chanid['chanid']
     filename = '%s/%s' %(datadir, self.persistant['filename'])
     out.write('Importing %s\n' % filename)
     utility.recursive_file_permissions(filename,-1,-1,0o777)
@@ -613,56 +643,7 @@ class MythNetTvProgram:
     tmp_recorded[u'basename'] = dest_file
     tmp_recorded[u'filesize'] = self.persistant['size']
     tmp_recorded[u'lastmodified'] = datetime.datetime.now()
-
-    #
-
-    # The quotes are missing around the description, because they are added
-    # by the FormatSqlValue() call
-    #self.db.ExecuteSql('insert into recorded (chanid, starttime, endtime, title, '
-    #                  'subtitle, description, season, episode, hostname, basename, '
-    #                  'progstart, progend, filesize, inetref, autoexpire) values '
-    #                  '(%s, %s, %s, %s, '
-    #                  '%s, %s, %s, %s, "%s", "%s", %s, %s, %s, %s, 1)'
-    #                  %(chanid,
-    #                    self.db.FormatSqlValue('', start),
-    #                    self.db.FormatSqlValue('', finish),
-    #                    self.db.FormatSqlValue('', self.persistant['title']),
-    #                    self.db.FormatSqlValue('',
-    #                            self.persistant['subtitle']),
-    #                    self.db.FormatSqlValue('',
-    #                            self.persistant['description']),
-    #                    self.db.FormatSqlValue('',
-    #                            realseason),
-    #                    self.db.FormatSqlValue('', 
-    #                            realepisode),
-    #                    socket.gethostname(),
-    #                    dest_file,
-    #                    self.db.FormatSqlValue('', start),
-    #                    self.db.FormatSqlValue('', finish),
-    #                    self.db.FormatSqlValue('', self.persistant['size']),
-    #                    self.db.FormatSqlValue('', '')))
-
-    
-
-    # insert the most basic date into the recordedprogram table
-    # this is necessary as audio properties etc are found here
-    #self.db.ExecuteSql('insert into recordedprogram (chanid, starttime, endtime, '
-    #                  'title, subtitle, description,'
-    #                  'audioprop, subtitletypes, videoprop) values '
-    #                  '(%s, %s, %s, '
-    #                  '%s, %s, %s, '
-    #                  '%s, %s, %s)'
-    #                  %(chanid,
-    #                    self.db.FormatSqlValue('', start),
-    #                    self.db.FormatSqlValue('', finish),
-    #                    self.db.FormatSqlValue('', self.persistant['title']),
-    #                    self.db.FormatSqlValue('',
-    #                            self.persistant['subtitle']),
-    #                    self.db.FormatSqlValue('',
-    #                            self.persistant['description']),
-    #                    self.db.FormatSqlValue('', audioprop),
-    #                    self.db.FormatSqlValue('', subtitletypes),
-    #                    self.db.FormatSqlValue('', videoprop)))
+    tmp_recorded[u'hostname'] = socket.gethostname()
 
     # add aspect to markup table
     if vid.values['ID_VIDEO_ASPECT']:
@@ -746,6 +727,15 @@ class MythNetTvProgram:
 #    out.write('and lastly rebuilding the seek table... ')
 #    commands.getoutput('mythtranscode -b -q --loglevel err -i "%s/%s"'
 #                       % (videodir, dest_file))
+
+    # generate preview, just so it doesn't need to be done later
+    try:
+      commands.getoutput('mythpreviewgen --loglevel err --infile "%s/%s"'
+                       % (videodir, dest_file))
+#      commands.getoutput('ffmpegthumbnailer -s 0 -i "%s/%s" -o "%s/%s"'
+#                        % (videodir, dest_file, videodir, dest_file))
+    except:
+      pass
 
     self.SetImported()
     out.write('Done\n\n')
@@ -963,3 +953,8 @@ class MythNetTvProgram:
       except:
         out.write('Season and episode information could not be found in %s \n' % row['subtitle'])
         pass
+
+  def overwrite(self, title, out=sys.stdout):
+    for row in self.db.GetRows('SELECT title, subtitle, basename FROM recorded WHERE title LIKE "%s";' % (title)):
+      row2 = self.db.GetRow('SELECT title, subtitle FROM mythnettv_programs WHERE basename LIKE "%s";' % (row['basename']))
+      out.write('Subtitle: %s' % row2['subtitle'])

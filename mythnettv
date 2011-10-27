@@ -142,7 +142,7 @@ def Usage(out):
                       subtitle
 
 (subscription management)
-  subscribe <url> <title> <inetref>
+  subscribe <url> <title> <inetref> <chanid>
                     : subscribe to a URL, and specify the show 
                       title and inetref
   list              : list subscriptions
@@ -167,6 +167,11 @@ def Usage(out):
                     : set the group for a given program. The
                       group is used as a recording group within
                       MythTV.
+  adddummychannel <chanid> <number> <callsign> <name> <icon>
+                    : add a dummy channel to the mythbackend.
+                      If the chanid is set in the subscription
+                      mythnettv will map it to the imported
+                      recording.
   http_proxy <url regexp> <proxy>
                     : you can choose to use a HTTP proxy for URL
                       requests matching a given regular expression.
@@ -418,7 +423,7 @@ def main(argv, out=sys.stdout):
 
   elif argv[1] == 'subscribe':
     # Subscribe to an RSS feed
-    mythnettvcore.Subscribe(argv[2], argv[3], argv[4])
+    mythnettvcore.Subscribe(argv[2], argv[3], argv[4], argv[5])
     out.write('Subscribed to %s\n' % argv[3])
 
   elif argv[1] == 'list':
@@ -683,6 +688,17 @@ you want to do this?\n\n""")
     except utility.FilenameException:
       print 'No video directory found! Use explainvideodir to debug'
 
+  elif argv[1] == 'adddummychannel':
+    chanid = argv[2]
+    channum = argv[3]
+    callsign = argv[4]
+    channame = argv[5]
+    icon = argv[6] 
+    if program.addChannel(icon, chanid, channum, callsign, channame):
+      out.write('Added dummy channel %s to mythbackend\n' % channame)
+    else:
+      out.write('Error: dummy channel %s was not added to mythbackend!/n Could be duplicate chanid or channel number\n' % channame)
+
   elif argv[1] == 'explainvideodir':
     utility.ExplainVideoDir(db)
 
@@ -718,11 +734,21 @@ you want to do this?\n\n""")
     prog = program.MythNetTvProgram(db)
     prog.TTVDB(argv[3])
 
-  elif argv[1] == 'fix14':
+  elif argv[1] == 'rescue':
     prog = program.MythNetTvProgram(db)
-    for row in db.GetRows('SELECT DISTINCT title FROM recorded WHERE subtitle LIKE "1x%" AND season = 1 AND episode = 4'):
-      prog.TTVDB(row['title'])
-    
+    for row in db.GetRows('SELECT title, subtitle, filesize, starttime, basename FROM recorded WHERE title LIKE "%s";' % (argv[2])):
+      row2 = db.GetOneRow('SELECT title, subtitle, size FROM mythnettv_programs WHERE size LIKE "%s";' % ( 
+                          row['filesize']))
+      title = re.sub('[0-9]of[0-9]\ .*','', row2['subtitle'])      
+      subtitle = re.sub(title, '', row2['subtitle'])
+      
+      try:
+        out.write('Title:    %s\n' % title)
+        out.write('Subtitle: %s\n' % subtitle)
+        out.write('filename: %s\n' % row['basename'])
+        db.ExecuteSql('UPDATE recorded SET title = "%s", subtitle = "%s" WHERE starttime LIKE "%s" AND basename LIKE "%s";' % (title, subtitle, row['starttime'], row['basename']))
+      except:
+        pass
   else:
     Usage(out)
 

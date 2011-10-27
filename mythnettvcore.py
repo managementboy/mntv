@@ -136,14 +136,15 @@ def DownloadAndImport(db, guid, out=sys.stdout):
   return False
 
 
-def Subscribe(url, title, inetref):
+def Subscribe(url, title, inetref, chanid):
   """Subscribe -- subscribe to a new RSS or ATOM feed"""
   
   db = database.MythNetTvDatabase()
   db.WriteOneRow('mythnettv_subscriptions', 'url', {'url':url,
                                                     'title':title,
                                                     'inactive':None,
-                                                    'inetref':inetref})
+                                                    'inetref':inetref,
+                                                    'chanid':chanid})
   
 def Update(out, title=None):
   """Update -- download updates for all feeds"""
