@@ -16,6 +16,7 @@ from datetime import datetime
 def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
   """ExtractSeasonEpisode -- extract the season and episode number from a string and return these as integers"""
   
+  found = False
   # this list contains the regular expression that would find both the season and episode
   matchme = ["s(\d{2})e(\d{2})", "S(\d{2})E(\d{2})", "(\d{2})x(\d{2})", "(\d{1})x(\d{2})", "(\d{1})x(\d{1})"]
   
@@ -25,6 +26,7 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
       season = int(re.search(search, seasonepisode).group(1))
       episode = int(re.search(search, seasonepisode).group(2))
       return season, episode
+      found = True
     except:
       pass
   
@@ -37,6 +39,7 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
       season = 1
       episode = int(re.search(search, seasonepisode).group(1))
       return season, episode
+      found = True
     except:
       pass
   
@@ -50,6 +53,7 @@ def ExtractDate(date, out=sys.stdout):
   matchyearfirst = ["(\d{4}).(\d{2}).(\d{2})", "(\d{4}) (\d{2}) (\d{2})", "(\d{4})-(\d{2})-(\d{2})"]
   matchyearlast = ["(\d{2}).(\d{2}).(\d{4})", "(\d{2}) (\d{2}) (\d{4})", "(\d{2})-(\d{2})-(\d{4})"]
   
+  found = False
   # iterate through each regular expression to find the actual integer value
   for search in matchyearfirst:
     try:
@@ -57,6 +61,7 @@ def ExtractDate(date, out=sys.stdout):
       month = int(re.search(search, date).group(2))
       day = int(re.search(search, date).group(3))
       return year, month, day
+      found = True
     except:
       pass
   for search in matchyearlast:
@@ -65,6 +70,7 @@ def ExtractDate(date, out=sys.stdout):
       month = int(re.search(search, date).group(2))
       day = int(re.search(search, date).group(1))
       return year, month, day
+      found = True
     except:
       pass
   # if we could not find anything...
@@ -77,31 +83,40 @@ def TVRageSeasonEpisode(title, season, episode, out=sys.stdout):
     tvshow = tvrage.api.Show(title)
     #then get the TVrage Episode information
     tvrageepisode = tvshow.season(season).episode(episode)
+    if title == tvrageepisode.show:
     #return subtitle and description
-    return tvrageepisode.title, utility.massageDescription(tvrageepisode.summary)
+      return tvrageepisode.title, utility.massageDescription(tvrageepisode.summary)
+    else:
+      return 0
   except:
     return 0
     
 def TVRageDate(title, year, month, day, out=sys.stdout):
   """ TVRageDate -- Get and format subtitle and description from TVRage based on a date"""
+  found = False
   try:
     #get the TVrage show information
     tvshow = tvrage.api.Show(title)
     #then get the TVrage Episode information
     seasoncount = int(tvshow.seasons)
-    while (seasoncount > 0):
+    while (seasoncount > 0) and not found:
       season = tvshow.season(seasoncount)
       for episodes in season:
         if tvshow.season(seasoncount).episode(episodes).airdate == date(year, month, day):
           subtitle = date(year, month, day).strftime("%Y.%m.%d") + ' ' + tvshow.season(seasoncount).episode(episodes).title
           #return subtitle and description
-          return subtitle, utility.massageDescription(tvshow.season(seasoncount).episode(episodes).summary), tvshow.season(seasoncount).episode(episodes).season, tvshow.season(seasoncount).episode(episodes).number
+          if title == tvrageepisode.show:
+	    return subtitle, utility.massageDescription(tvshow.season(seasoncount).episode(episodes).summary), tvshow.season(seasoncount).episode(episodes).season, tvshow.season(seasoncount).episode(episodes).number
+            found = True
+          else:
+	    return 0
       seasoncount = seasoncount - 1
   except:
     return 0
 
 def TTVDBSeasonEpisode(title, season, episode, out=sys.stdout):
   """ TTVDBSeasonEpisode -- Get and format subtitle and description from The TV Database based on a season and episode"""
+  found = False
   try:
     #get the TVrage show information
     tvshow = tvdb_api.Tvdb()
@@ -113,12 +128,13 @@ def TTVDBSeasonEpisode(title, season, episode, out=sys.stdout):
     except:
       description = utility.massageDescription(tvrageepisode['overview'])
     return tvrageepisode['episodename'], description, season, episode, tvrageepisode['seriesid']
+    found = True
   except:
     return 0
 
 def TTVDBDate(title, year, month, day, out=sys.stdout):
   """ TTVDBDate -- Get and format subtitle and description from The TV Database based on a date"""
-
+  found = False
   try:
     #get the TTVDB show information
     ttvdb = tvdb_api.Tvdb()
@@ -135,12 +151,13 @@ def TTVDBDate(title, year, month, day, out=sys.stdout):
           subtitle = datetime(year, month, day).strftime("%Y.%m.%d") + ' ' + tvshow[season][episode]['episodename']
           #return subtitle and description
           return subtitle, utility.massageDescription(tvshow[season][episode]['overview']), season, episode, tvshow[season][episode]['seriesid']
+          found = True
   except:
     return 0 
 
 def TTVDBSubtitle(title, subtitle, out=sys.stdout):
   """ TTVDBDate -- Get and format subtitle and description from The TV Database based on a show subtitle"""
-
+  found = False
   try:
     #get the TTVDB show information
     ttvdb = tvdb_api.Tvdb()
@@ -149,5 +166,6 @@ def TTVDBSubtitle(title, subtitle, out=sys.stdout):
       for episode in tvshow[season]:
         if tvshow[season][episode]['episodename'] == subtitle:
           return subtitle, utility.massageDescription(tvshow[season][episode]['overview']), season, episode, tvshow[season][episode]['seriesid']
+          found = True
   except:
     return 0

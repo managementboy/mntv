@@ -448,7 +448,7 @@ class MythNetTvProgram:
 
   def Import(self, out=sys.stdout):
     """Import -- import a downloaded show into the MythTV user interface"""
-
+    
     # Determine meta data
     self.db.Log('Importing %s' % self.persistant['guid'])
     datadir = self.db.GetSettingWithDefault('datadir', FLAGS.datadir)
@@ -461,17 +461,15 @@ class MythNetTvProgram:
     filename = '%s/%s' %(datadir, self.persistant['filename'])
     out.write('Importing %s\n' % filename)
     utility.recursive_file_permissions(filename,-1,-1,0o777)
-
+    
     if os.path.isdir(filename):
       # go through all subdirectories to find RAR files
       for root, dirnames, ents in os.walk(filename):
-        for counter in fnmatch.filter(ents, '*'):
+        for counter in fnmatch.filter(ents, '*.rar'):
           if counter.endswith('.rar'):
-             out.write('Extracting RARs, please wait... ')
-             UnRAR2.RarFile(os.path.join(root, counter)).extract(path=filename)
-             out.write('Extracted %s\n' % counter)
-             break
-      
+            out.write('Extracting RARs, please wait... ')
+            UnRAR2.RarFile(os.path.join(root, counter)).extract(path=filename)
+            out.write('Extracted %s\n' % counter)
       handled = False
 
       # go throuhg all sundirectories again, to find video files
@@ -479,13 +477,10 @@ class MythNetTvProgram:
       for root, dirnames, ents in os.walk(filename):
         for counter in fnmatch.filter(ents, '*'):
           for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
-            if counter.endswith(extn):
-              if not fnmatch.fnmatch(counter, '*ample*'):
-                #filename = os.path.join(root, counter)
-                filename = '%s/%s' %(root, counter)
-                out.write('Picked %s from the directory\n' % filename)
-                handled = True
-                break
+            if counter.endswith(extn) and not fnmatch.fnmatch(counter, '*ample*'):
+              filename = '%s/%s' %(root, counter)
+              out.write('Picked %s from the directory\n' % filename)
+              handled = True
 
       if not handled:
         raise DirectoryException(self.db,
@@ -497,19 +492,21 @@ class MythNetTvProgram:
     # Try to use the publish time of the RSS entry as the start time...
     # The tuple will be in the format: 2003, 8, 6, 20, 43, 20
     try:
-      tuple = eval(self.persistant['parsed_date'])
-      start = datetime.datetime(tuple[0], tuple[1], tuple[2], tuple[3],
-                                tuple[4], tuple[5])
+      #tuple = eval(self.persistant['parsed_date'])
+      #start = datetime.datetime(tuple[0], tuple[1], tuple[2], tuple[3],
+      #                          tuple[4], tuple[5])
+      start = datetime.datetime.strptime(self.persistant['date'], '%Y-%m-%d %H:%M:%S')
+      out.write('  databasetime\n')
     except:
       start = datetime.datetime.now()
-
+      out.write('  now as time\n')
+      
+   
     # Ensure uniqueness for the start time
     interval = datetime.timedelta(seconds = 1)
-    while not self.db.GetOneRow('select basename from recorded where '
-                                'starttime = %s and chanid = %s and ' 
-                                'basename != "%s"' \
+    while self.db.GetOneRow('select basename from recorded where starttime = %s and chanid = %s and basename != "%s"' \
                                 %(self.db.FormatSqlValue('', start),
-                                  chanid, filename)) == None:
+                                  chanid, filename)):
       start += interval
       
     # Determine the duration of the video
@@ -529,6 +526,7 @@ class MythNetTvProgram:
     inetref = ''
     # get show and episode details from TV-Rage, if possible
 
+    
     #try if we can get TVRage information back
     try:
       se = series.ExtractSeasonEpisode(self.persistant['subtitle'])
@@ -567,6 +565,16 @@ class MythNetTvProgram:
     except:
       pass
 
+    #try to check if we already imported this file. It's more a hack than a feature :(
+    if self.db.GetOneRow('select * from recorded where starttime = %s and chanid = %s and basename = "%s"' 
+                         %(self.db.FormatSqlValue('', start),
+                         chanid, filename)):
+      self.SetImported()
+      out.write('The exact same file has been imported at the same time and channel\n'
+                'Not importing again!')
+      return
+      
+      
     # Determine the audioproperties of the video
     audioprop = vid.Audioprop()
 
@@ -598,13 +606,13 @@ class MythNetTvProgram:
 
     # Transcode file to a better format if needed. transcoded is the filename
     # without the data directory portion
-    if vid.NeedsTranscode(out=out):
-      transcoded_filename = vid.Transcode(datadir, out=out)
-      transcoded = '%s/%s' %(datadir, transcoded_filename)
-      os.remove(filename)
-    else:
-      transcoded = filename
-      transcoded_filename = filename.split('/')[-1]
+    #if vid.NeedsTranscode(out=out):
+    #  transcoded_filename = vid.Transcode(datadir, out=out)
+    #  transcoded = '%s/%s' %(datadir, transcoded_filename)
+    #  os.remove(filename)
+    #else:
+    transcoded = filename
+    transcoded_filename = filename.split('/')[-1]
 
     out.write('Importing video %s...\n' % self.persistant['guid'])
     epoch = time.mktime(datetime.datetime.now().timetuple())
@@ -679,9 +687,6 @@ class MythNetTvProgram:
     if row:
       out.write('Setting category to %s\n' % row['category'])
       tmp_recorded[u'category'] = row['category']
-      #self.db.ExecuteSql('update recorded set category="%s" where '
-      #                  'basename="%s";'
-      #                  %(row['category'], dest_file))
 
     # Ditto the group
     row = self.db.GetOneRow('select * from mythnettv_group where '
@@ -690,28 +695,21 @@ class MythNetTvProgram:
     if row:
       out.write('Setting recording group to %s\n' % row['recgroup'])
       tmp_recorded[u'recgroup'] = row['recgroup']
-      #self.db.ExecuteSql('update recorded set recgroup="%s" where '
-      #                  'basename="%s";'
-      #                  %(row['recgroup'], dest_file))
     
     # Ditto the inetref
     row = self.db.GetOneRow('select * from mythnettv_subscriptions where '
                             'title="%s";'
                             % self.persistant['title']) 
+                            
     # if we got an inetref from the TTVDB use it
     if inetref:
       out.write('Setting the inetref to %s\n' % inetref)
       tmp_recorded[u'inetref'] = inetref
-      #self.db.ExecuteSql('update recorded set inetref="%s" where '
-      #                  'basename="%s";'
-      #                  %(inetref, dest_file))
+
     # else use the one provided by the subscription
     elif row:
       out.write('Setting the inetref to %s\n' % row['inetref'])
       tmp_recorded[u'inetref'] = row['inetref']
-      #self.db.ExecuteSql('update recorded set inetref="%s" where '
-      #                  'basename="%s";'
-      #                  %(row['inetref'], dest_file))
       
     tmp_recorded[u'audioprop'] = audioprop
     tmp_recorded[u'subtitletypes'] = subtitletypes
@@ -729,13 +727,14 @@ class MythNetTvProgram:
 #                       % (videodir, dest_file))
 
     # generate preview, just so it doesn't need to be done later
-    try:
-      commands.getoutput('mythpreviewgen --loglevel err --infile "%s/%s"'
-                       % (videodir, dest_file))
+#   time.sleep(5)
+#    try:
+#      commands.getoutput('mythpreviewgen --loglevel err --infile "%s/%s"'
+#                       % (videodir, dest_file))
 #      commands.getoutput('ffmpegthumbnailer -s 0 -i "%s/%s" -o "%s/%s"'
 #                        % (videodir, dest_file, videodir, dest_file))
-    except:
-      pass
+#    except:
+#      pass
 
     self.SetImported()
     out.write('Done\n\n')
@@ -774,81 +773,6 @@ class MythNetTvProgram:
     self.persistant['last_attempt'] = None
     self.Store()
     
-  def Updatemeta(self, filename):
-    """UpdateMeta-- Update metadata gained from video files"""
-    
-    # Construct a video object
-    vid = None
-    vid = video.MythNetTvVideo(self.db, filename)
-    
-    # Determine the audioproperties of the video
-    audioprop = vid.Audioprop()
-
-    # Determine the subtitles of the video
-    subtitletypes = vid.Subtitletypes()
-
-    # Determine the Videoproperties
-    videoprop = vid.Videoprop()
-    
-#    self.db.ExecuteSql('update recordedprogram set audioprop="%s", subtitleprop="%s", videoprop="%s" where '
-#                         'basename="%s";'
-#                         audioprop, subtitletypes, videoprop, filename))
-    # If there is a category set for this subscription, then set that as well
-    row = self.db.GetOneRow('select * from recorded where '
-                            'basename="%s";'
-                            % filename)
-    row2 = self.db.GetOneRow('select * from recordedprogram where chanid="%s" AND starttime="%s" AND endtime="%s";' % ( row['chanid'], row['progstart'],row['progend']))
-#    print ('chanid="%s"' % row['chanid'])
-#    self.db.ExecuteSql(
-    if row2 is not None:
-      self.db.ExecuteSql('update recordedprogram set audioprop="%s", subtitletypes="%s", videoprop="%s", filesize="%s" where chanid="%s" AND starttime="%s" AND endtime="%s";' % (audioprop, subtitletypes, videoprop, row['chanid'], row['progstart'], row['progend']))
-    else:
-      self.db.ExecuteSql('insert into recordedprogram (chanid, starttime, endtime, '
-                      'title, subtitle, description, category, category_type, '
-                      'airdate, stars, previouslyshown, title_pronounce, stereo, '
-                      'subtitled, hdtv, closecaptioned, partnumber, parttotal, '
-                      'seriesid, originalairdate, colorcode, syndicatedepisodenumber, programid, '
-                      'manualid, generic, listingsource, first, last, '
-                      'audioprop, subtitletypes, videoprop) values '
-                      '(%s, %s, %s, '
-                      '%s, %s, %s, %s, %s, '
-                      '%s, %s, %s, %s, %s, '
-                      '%s, %s, %s, %s, %s, '
-                      '%s, %s, %s, %s, %s, '
-                      '%s, %s, %s, %s, %s, '
-                      '%s, %s, %s)'
-                      %(row['chanid'],
-                        self.db.FormatSqlValue('', row['progstart']),
-                        self.db.FormatSqlValue('', row['progend']),
-                        self.db.FormatSqlValue('', row['title']),
-                        self.db.FormatSqlValue('', row['subtitle']),
-                        self.db.FormatSqlValue('', row['description']),
-                        self.db.FormatSqlValue('', ''),
-                        self.db.FormatSqlValue('', ''),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', ''),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', ''),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', ''),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', 0),
-                        self.db.FormatSqlValue('', audioprop),
-                        self.db.FormatSqlValue('', subtitletypes),
-                        self.db.FormatSqlValue('', videoprop)))
-
   def TVRage(self, showtitle, out=sys.stdout):
     """TVRage -- Get episode information from TVRage"""
 
@@ -936,7 +860,6 @@ class MythNetTvProgram:
           self.db.ExecuteSql ('update recorded set episode=%s WHERE basename = "%s";' % (titledescription[3], row['basename']))
       except:
         pass
-
 
   def titlefix(self, oldtitle, newtitle, out=sys.stdout):
     """titlefix -- fix the current title with a new one """

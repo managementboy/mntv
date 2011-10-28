@@ -60,6 +60,7 @@ def Download(torrent_filename, tmpname, info_func,
 
   out.write('Now fetching the bittorrent data\n')
   download_ok = False
+  exit = False
   
   tc = transmissionrpc.Client('localhost', port=9091, user='admin', password='admin')
 
@@ -85,7 +86,7 @@ def Download(torrent_filename, tmpname, info_func,
   stalecounter = 0
   try:
     start_time = datetime.datetime.now()
-    while not download_ok:
+    while not download_ok or not exit:
       time.sleep(5)
       oldprogress = tc.info(tkey)[tkey].progress
       #out.write('%s... ' % tc.info(tkey)[tkey].status)
@@ -102,7 +103,7 @@ def Download(torrent_filename, tmpname, info_func,
         if wait_time.seconds > 600:
           out.write('Waited %s for download to start. Giving up.\n'
                     % wait_time)
-          break
+          exit = True
       # print the percent of download done if download started
       if tc.info(tkey)[tkey].progress >= 0:
         out.write('%.2f%% downloaded' % tc.info(tkey)[tkey].progress)
@@ -111,9 +112,10 @@ def Download(torrent_filename, tmpname, info_func,
         out.flush()
         if tc.info(tkey)[tkey].format_eta() == 'unknown' or tc.info(tkey)[tkey].format_eta() == 'not available':
           stalecounter = stalecounter + 1
-      if stalecounter == 600:
+      if stalecounter >= 600:
         out.write('Download has gone stale... stopping and removing')
         return 0
+        exit = True
         
   except IOError, e:
     raise BitTorrentDownloadException('Error downloading bittorrent data: %s'
