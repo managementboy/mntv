@@ -17,6 +17,7 @@ import tempfile
 import time
 import unicodedata
 import fnmatch
+import urlparse
 
 import database
 import gflags
@@ -132,7 +133,7 @@ class MythNetTvProgram:
                           'where guid="%s";' % guid).keys() != []:
         new_video = False
     except:
-      dummy = 'blah'
+      pass
 
     self.Store()
     self.db.Log('Updated show from %s with guid %s' %(url, guid))
@@ -408,6 +409,15 @@ class MythNetTvProgram:
       total = streamingsites.Download('Vimeo', vimeoid.group(1), datadir)
       self.persistant['filename'] = total
 
+    elif self.persistant['url'].startswith('http://www.youtube'):
+      url_data = urlparse.urlparse(self.persistant['url'])
+      query = urlparse.parse_qs(url_data.query)
+      youtubeid = query["v"][0]
+      out.write('YouTubeID:   %s\n' % youtubeid)
+      total = streamingsites.Download('YouTube', youtubeid, datadir)
+      out.write('%s/n' % total)
+      self.persistant['filename'] = total
+
     elif self.persistant['url'].startswith('http://'):
       total = self.DownloadHTTP(filename, force_proxy=force_proxy,
                                 force_budget=force_budget)
@@ -459,14 +469,16 @@ class MythNetTvProgram:
     else:
       chanid = chanid['chanid']
     filename = '%s/%s' %(datadir, self.persistant['filename'])
+    dirname_torrent = '%s/%s' %(datadir, self.persistant['filename'])
     out.write('Importing %s\n' % filename)
     utility.recursive_file_permissions(filename,-1,-1,0o777)
     
     if os.path.isdir(filename):
       # go through all subdirectories to find RAR files
       for root, dirnames, ents in os.walk(filename):
-        for counter in fnmatch.filter(ents, '*.rar'):
-          if counter.endswith('.rar'):
+        for counter in fnmatch.filter(ents, '*'):
+	  # only pick those files that are single rars or the first part of a rar
+          if counter.endswith('.rar') and not (re.search('part[1-9][0-9]', counter) or re.search('part0[2-9]', counter)):
             out.write('Extracting RARs, please wait... ')
             UnRAR2.RarFile(os.path.join(root, counter)).extract(path=filename)
             out.write('Extracted %s\n' % counter)
@@ -499,7 +511,7 @@ class MythNetTvProgram:
       out.write('  databasetime\n')
     except:
       start = datetime.datetime.now()
-      out.write('  now as time\n')
+      out.write('  now as time %s\n' % self.persistant['date'])
       
    
     # Ensure uniqueness for the start time
@@ -541,7 +553,8 @@ class MythNetTvProgram:
       realseason = se[0]
       realepisode = se[1]
       inetref = titledescription[4]
-      out.write("Found on TVRage or TTVDB: S%sE%s inetref:%s\n" % (realseason, realepisode, inetref))
+      if FLAGS.verbose:
+	out.write("Found on TVRage or TTVDB: S%sE%s inetref:%s\n" % (realseason, realepisode, inetref))
     except:
       pass
     # do the same to check if we can find the date in the subtitle
@@ -561,20 +574,11 @@ class MythNetTvProgram:
       start = start.replace (se[0], se[1], se[2])
       finish = finish.replace (se[0], se[1], se[2])
       inetref = titledescription[4]
-      out.write("Found on TVRage or TTVDB: S%sE%s inetref:%s\n" % (realseason, realepisode, inetref))
+      if FLAGS.verbose:
+	out.write("Found on TVRage or TTVDB: S%sE%s inetref:%s\n" % (realseason, realepisode, inetref))
     except:
       pass
 
-    #try to check if we already imported this file. It's more a hack than a feature :(
-    if self.db.GetOneRow('select * from recorded where starttime = %s and chanid = %s and basename = "%s"' 
-                         %(self.db.FormatSqlValue('', start),
-                         chanid, filename)):
-      self.SetImported()
-      out.write('The exact same file has been imported at the same time and channel\n'
-                'Not importing again!')
-      return
-      
-      
     # Determine the audioproperties of the video
     audioprop = vid.Audioprop()
 
@@ -611,17 +615,31 @@ class MythNetTvProgram:
     #  transcoded = '%s/%s' %(datadir, transcoded_filename)
     #  os.remove(filename)
     #else:
-    transcoded = filename
     transcoded_filename = filename.split('/')[-1]
 
     out.write('Importing video %s...\n' % self.persistant['guid'])
     epoch = time.mktime(datetime.datetime.now().timetuple())
     dest_file = '%d_%s' %(epoch, transcoded_filename.replace(' ', '_'))
     
-    #changed from move to copy use "find * -mtime +3 -delete" or something
-    #similar to delete old downloads
-    shutil.copy('%s' % transcoded,
-                '%s/%s' %(videodir, dest_file))
+    # moving is better than copying as it uses less space and 
+    # once the file is gone, it will not be imported again
+    try:
+      shutil.move('%s' % filename,
+                  '%s/%s' %(videodir, dest_file))
+    except:
+      out.write('Problem: moving %s did not work, please check file permissions.\n Will copy instead.' % filename)
+      shutil.copy('%s' % filename,
+                  '%s/%s' %(videodir, dest_file))
+    # clean up after us...
+    try:
+      if self.persistant['mime_type'] == 'application/x-bittorrent':
+        out.write('deleting temporary directory %s...\n' % dirname_torrent)
+        try:
+          shutil.rmtree(dirname_torrent)
+        except:
+          out.write('Error: deleting temporary directory %s. Delete manually.\n' % dirname_torrent)
+    except:
+      pass
 
     # Ensure sensible permissions on the recording that MythTV stores
     os.chmod('%s/%s' %(videodir, dest_file),
@@ -656,26 +674,33 @@ class MythNetTvProgram:
     # add aspect to markup table
     if vid.values['ID_VIDEO_ASPECT']:
       #aspecttype = 0
-      out.write('Storing aspect ratio: %s\n' % vid.values['ID_VIDEO_ASPECT'])
-      if float(vid.values['ID_VIDEO_ASPECT']) < 1.4:
+      if FLAGS.verbose:
+        out.write('Storing aspect ratio: %s\n' % vid.values['ID_VIDEO_ASPECT'])
+      if float(vid.values['ID_VIDEO_ASPECT']) < 1.41:
         aspecttype = 11
-      elif float(vid.values['ID_VIDEO_ASPECT']) < 1.8:
+      elif float(vid.values['ID_VIDEO_ASPECT']) < 1.81:
         aspecttype = 12
-      elif float(vid.values['ID_VIDEO_ASPECT']) < 2.3:
+      elif float(vid.values['ID_VIDEO_ASPECT']) < 2.31:
         aspecttype = 13 
-        
-      self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
+      try:
+        self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
                          'values (%s, %s, 1, %s, NULL)'
-                         %(chanid, self.db.FormatSqlValue('', start), aspecttype))
-    
+                           %(chanid, self.db.FormatSqlValue('', start), aspecttype))
+      except:
+        if FLAGS.verbose:
+          out.write('Storing aspect ratio: %s\n' % vid.values['ID_VIDEO_ASPECT'])
+        pass
+
     # if the height and/or width of the recording is known, store it in the markuptable
     if vid.values['ID_VIDEO_HEIGHT']:
-      out.write('Storing height: %s\n' % vid.values['ID_VIDEO_HEIGHT'])
+      if FLAGS.verbose:
+	out.write('Storing height: %s\n' % vid.values['ID_VIDEO_HEIGHT'])
       self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
                          'values (%s, %s, 12, 31, %s)'
                          %(chanid, self.db.FormatSqlValue('', start), vid.values['ID_VIDEO_HEIGHT']))
     if vid.values['ID_VIDEO_WIDTH']:
-      out.write('Storing width: %s\n' % vid.values['ID_VIDEO_WIDTH'])
+      if FLAGS.verbose:
+	out.write('Storing width: %s\n' % vid.values['ID_VIDEO_WIDTH'])
       self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
                          'values (%s, %s, 12, 30, %s)'
                          %(chanid, self.db.FormatSqlValue('', start), vid.values['ID_VIDEO_WIDTH']))
@@ -685,7 +710,8 @@ class MythNetTvProgram:
                             'title="%s";'
                             % self.persistant['title'])
     if row:
-      out.write('Setting category to %s\n' % row['category'])
+      if FLAGS.verbose:
+	out.write('Setting category to %s\n' % row['category'])
       tmp_recorded[u'category'] = row['category']
 
     # Ditto the group
@@ -693,7 +719,8 @@ class MythNetTvProgram:
                             'title="%s";'
                             % self.persistant['title'])
     if row:
-      out.write('Setting recording group to %s\n' % row['recgroup'])
+      if FLAGS.verbose:
+	out.write('Setting recording group to %s\n' % row['recgroup'])
       tmp_recorded[u'recgroup'] = row['recgroup']
     
     # Ditto the inetref
@@ -703,12 +730,14 @@ class MythNetTvProgram:
                             
     # if we got an inetref from the TTVDB use it
     if inetref:
-      out.write('Setting the inetref to %s\n' % inetref)
+      if FLAGS.verbose:
+	out.write('Setting the inetref to %s\n' % inetref)
       tmp_recorded[u'inetref'] = inetref
 
     # else use the one provided by the subscription
     elif row:
-      out.write('Setting the inetref to %s\n' % row['inetref'])
+      if FLAGS.verbose:
+	out.write('Setting the inetref to %s\n' % row['inetref'])
       tmp_recorded[u'inetref'] = row['inetref']
       
     tmp_recorded[u'audioprop'] = audioprop

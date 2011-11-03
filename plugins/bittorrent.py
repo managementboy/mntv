@@ -90,7 +90,8 @@ def Download(torrent_filename, tmpname, info_func,
       time.sleep(5)
       oldprogress = tc.info(tkey)[tkey].progress
       #out.write('%s... ' % tc.info(tkey)[tkey].status)
-      if tc.info(tkey)[tkey].status == 'seeding':
+      #if tc.info(tkey)[tkey].status == 'seeding':
+      if tc.info(tkey)[tkey].progress == 100:
         #out.write('Seeding torrent...')
         download_ok = True
         break
@@ -127,7 +128,7 @@ def Download(torrent_filename, tmpname, info_func,
 
   if not download_ok:
     return 0
-  time.sleep(30)  
+  time.sleep(5)  
   video_size = 0
   
   try:

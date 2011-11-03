@@ -732,16 +732,17 @@ you want to do this?\n\n""")
   elif argv[1] == 'rescue':
     prog = program.MythNetTvProgram(db)
     for row in db.GetRows('SELECT title, subtitle, filesize, starttime, basename FROM recorded WHERE title LIKE "%s";' % (argv[2])):
-      row2 = db.GetOneRow('SELECT title, subtitle, size FROM mythnettv_programs WHERE size LIKE "%s";' % ( 
-                          row['filesize']))
-      title = re.sub('[0-9]of[0-9]\ .*','', row2['subtitle'])      
+      row2 = db.GetOneRow('SELECT title, subtitle, size FROM mythnettv_programs WHERE starttime LIKE "%s" and size LIKE "%s";' % ( 
+                          row['starttime'], row['filesize']))
+      
+      title = re.sub('[0-9]of[0-9]\ .*|[0-9]x[0-9]\ .*','', row2['subtitle'])      
       subtitle = re.sub(title, '', row2['subtitle'])
       
       try:
         out.write('Title:    %s\n' % title)
         out.write('Subtitle: %s\n' % subtitle)
         out.write('filename: %s\n' % row['basename'])
-        db.ExecuteSql('UPDATE recorded SET title = "%s", subtitle = "%s" WHERE starttime LIKE "%s" AND basename LIKE "%s";' % (title, subtitle, row['starttime'], row['basename']))
+        out.write('UPDATE recorded SET title = "%s", subtitle = "%s" WHERE starttime LIKE "%s" AND basename LIKE "%s";' % (title, subtitle, row['starttime'], row['basename']))
       except:
         pass
   else:

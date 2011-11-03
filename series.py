@@ -50,7 +50,7 @@ def ExtractDate(date, out=sys.stdout):
   """ExtractDate -- extract the year, month, day from a string and return these as integers"""
   
   # this list contains the regular expression that would find both the season and episode
-  matchyearfirst = ["(\d{4}).(\d{2}).(\d{2})", "(\d{4}) (\d{2}) (\d{2})", "(\d{4})-(\d{2})-(\d{2})"]
+  matchyearfirst = ["(\d{4}).(\d{2}).(\d{2})", "(\d{4}) (\d{2}) (\d{2})", "(\d{4})-(\d{2})-(\d{2})", "(\d{4}) (\d{2})  (\d{2})"]
   matchyearlast = ["(\d{2}).(\d{2}).(\d{4})", "(\d{2}) (\d{2}) (\d{4})", "(\d{2})-(\d{2})-(\d{4})"]
   
   found = False
@@ -105,15 +105,15 @@ def TVRageDate(title, year, month, day, out=sys.stdout):
         if tvshow.season(seasoncount).episode(episodes).airdate == date(year, month, day):
           subtitle = date(year, month, day).strftime("%Y.%m.%d") + ' ' + tvshow.season(seasoncount).episode(episodes).title
           #return subtitle and description
-          if title == tvrageepisode.show:
-	    return subtitle, utility.massageDescription(tvshow.season(seasoncount).episode(episodes).summary), tvshow.season(seasoncount).episode(episodes).season, tvshow.season(seasoncount).episode(episodes).number
+          if title == tvshow.season(seasoncount).episode(episodes).show:
+            return subtitle, utility.massageDescription(tvshow.season(seasoncount).episode(episodes).summary), tvshow.season(seasoncount).episode(episodes).season, tvshow.season(seasoncount).episode(episodes).number
             found = True
-          else:
-	    return 0
       seasoncount = seasoncount - 1
   except:
     return 0
-
+  if not found:
+    return 0
+    
 def TTVDBSeasonEpisode(title, season, episode, out=sys.stdout):
   """ TTVDBSeasonEpisode -- Get and format subtitle and description from The TV Database based on a season and episode"""
   found = False
