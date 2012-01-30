@@ -62,6 +62,7 @@ def Download(torrent_filename, tmpname, info_func,
   download_ok = False
   exit = False
   
+  #open a transmission connection called tc
   tc = transmissionrpc.Client('localhost', port=9091, user='admin', password='admin')
 
   torrent_file = open(torrent_filename)
@@ -73,6 +74,7 @@ def Download(torrent_filename, tmpname, info_func,
     if tc.info(keys)[keys].fields['hashString'] == hashlib.sha1(bencode.bencode(info)).hexdigest():
       out.write('The torrent is being downloaded by transmission. No need to add it again.\n')
       tkey = keys
+  # and if not found add the new file to transmission
   if tkey == -1:
     try:
       torrent = tc.add_uri(torrent_filename, download_dir=dir)
@@ -81,7 +83,7 @@ def Download(torrent_filename, tmpname, info_func,
     except transmissionrpc.TransmissionError, e:
       out.write('Failed to add torrent "%s"' % e)
       return 0
-
+  # tell transmission to change the upload rate to the one we got from the database
   tc.change(tkey, uploadLimit=upload_rate, uploadLimited=True)
   stalecounter = 0
   try:
