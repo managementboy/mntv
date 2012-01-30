@@ -539,11 +539,12 @@ class MythNetTvProgram:
     # get show and episode details from TV-Rage, if possible
 
     
-    #try if we can get TVRage information back
+    #try if we can get TVRage or TTVDB information back
     try:
       se = series.ExtractSeasonEpisode(self.persistant['subtitle'])
       tvrage = series.TVRageSeasonEpisode(self.persistant['title'], se[0], se[1])
       ttvdb = series.TTVDBSeasonEpisode(self.persistant['title'], se[0], se[1])
+      # if ttvdb did not return correct date take tvrage (mythtv likes ttvdb)
       if ttvdb:
         titledescription = ttvdb
       else:
