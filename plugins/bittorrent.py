@@ -63,8 +63,11 @@ def Download(torrent_filename, tmpname, info_func,
   exit = False
   
   #open a transmission connection called tc
-  tc = transmissionrpc.Client('localhost', port=9091, user='admin', password='admin')
-
+  try:
+    tc = transmissionrpc.Client('localhost', port=9091, user='admin', password='admin')
+  except transmissionrpc.TransmissionError, e:
+    out.write(u'Failed to connect to transmission daemon "%s"' % e)
+    
   torrent_file = open(torrent_filename)
   metainfo = bencode.bdecode(torrent_file.read())
   info = metainfo['info']
