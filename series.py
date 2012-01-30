@@ -43,30 +43,24 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
 def ExtractDate(date, out=sys.stdout):
   """ExtractDate -- extract the year, month, day from a string and return these as integers"""
   
-  # this list contains the regular expression that would find both the season and episode
+  # this list contains the regular expressions that contain the day month year
   matchyearfirst = ["(\d{4}).(\d{2}).(\d{2})", "(\d{4}) (\d{2}) (\d{2})", "(\d{4})-(\d{2})-(\d{2})", "(\d{4}) (\d{2})  (\d{2})"]
   matchyearlast = ["(\d{2}).(\d{2}).(\d{4})", "(\d{2}) (\d{2}) (\d{4})", "(\d{2})-(\d{2})-(\d{4})"]
   
   found = False
   # iterate through each regular expression to find the actual integer value
   for search in matchyearfirst:
-    try:
-      year = int(re.search(search, date).group(1))
-      month = int(re.search(search, date).group(2))
-      day = int(re.search(search, date).group(3))
-      return year, month, day
+    match = re.search(search, date)
+    if match:
+      return match.group(1), match.group(2), match.group(3)
       found = True
-    except:
-      pass
+
   for search in matchyearlast:
-    try:
-      year = int(re.search(search, date).group(3))
-      month = int(re.search(search, date).group(2))
-      day = int(re.search(search, date).group(1))
-      return year, month, day
+    match = re.search(search, date)
+    if match:
+      return match.group(3), match.group(2), match.group(1)
       found = True
-    except:
-      pass
+      
   # if we could not find anything...
   return 0
   
