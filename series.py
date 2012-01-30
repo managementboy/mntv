@@ -22,26 +22,20 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
   
   # iterate through each regular expression to find the actual integer value
   for search in matchme:
-    try:
-      season = int(re.search(search, seasonepisode).group(1))
-      episode = int(re.search(search, seasonepisode).group(2))
-      return season, episode
+    match = re.search(search, seasonepisode)
+    if match:
+      return int(match.group(1)), int(match.group(2))
       found = True
-    except:
-      pass
   
   #similar problem with titles containing "xx of yy"
   matchme = ["(\d{2})\s*of\s*(\d{2})", "(\d{1})\s*of\s*(\d{2})", "(\d{1})\s*of\s*(\d{1})", "(\d{2})\s*/\s*(\d{2})", "(\d{1})\s*/\s*(\d{2})", "(\d{1})\s*/\s*(\d{1})"]
   
   for search in matchme:
-    try:
-      # we need to assume that any such show is always the first season
-      season = 1
-      episode = int(re.search(search, seasonepisode).group(1))
-      return season, episode
+    # we need to assume that any such show is always the first season
+    match = re.search(search, seasonepisode)
+    if match:
+      return 1, int(match.group(1))
       found = True
-    except:
-      pass
   
   # if we could not find anything...
   return 0
