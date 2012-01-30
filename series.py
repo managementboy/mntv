@@ -31,7 +31,7 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
       pass
   
   #similar problem with titles containing "xx of yy"
-  matchme = ["(\d{2})of(\d{2})", "(\d{1})of(\d{2})", "(\d{1})of(\d{1})", "(\d{2})of (\d{2})", "(\d{1})of (\d{2})", "(\d{1})of (\d{1})", "(\d{2}) of (\d{2})", "(\d{1}) of (\d{2})", "(\d{1}) of (\d{1})", "(\d{2})/(\d{2})", "(\d{1})/(\d{2})", "(\d{1})/(\d{1})"]
+  matchme = ["(\d{2})\s*of\s*(\d{2})", "(\d{1})\s*of\s*(\d{2})", "(\d{1})\s*of\s*(\d{1})", "(\d{2})\s*/\s*(\d{2})", "(\d{1})\s*/\s*(\d{2})", "(\d{1})\s*/\s*(\d{1})"]
   
   for search in matchme:
     try:
