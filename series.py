@@ -170,7 +170,7 @@ def TTVDBDate(title, year, month, day, out=sys.stdout):
     return 0 
 
 def TTVDBSubtitle(title, subtitle, out=sys.stdout):
-  """ TTVDBDate -- Get and format subtitle and description from The TV Database based on a show subtitle
+  """ TTVDBSubtitle -- Get and format subtitle and description from The TV Database based on a show subtitle
       title    = Official name of TV-show ... as exact as possible, please
       subtitle = correct official subtitle of the show
       returns the correct subtitle and full description then the season and episode number and lastly the TTVDBID
