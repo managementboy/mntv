@@ -14,7 +14,9 @@ from datetime import date
 from datetime import datetime
 
 def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
-  """ExtractSeasonEpisode -- extract the season and episode number from a string and return these as integers"""
+  """ExtractSeasonEpisode -- extract the season and episode number from a string and return these as integers
+     seasonepisode = string containing a potential season and episode number
+  """
   
   found = False
   # this list contains the regular expression that would find both the season and episode
@@ -41,7 +43,9 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
   return 0
   
 def ExtractDate(date, out=sys.stdout):
-  """ExtractDate -- extract the year, month, day from a string and return these as integers"""
+  """ExtractDate -- extract the year, month, day from a string and return these as integers
+     date = string containing a date with year, month and (not or) day
+  """
   
   # this list contains the regular expressions that contain the day month year
   matchyearfirst = ["(\d{4}).(\d{2}).(\d{2})", "(\d{4}) (\d{2}) (\d{2})", "(\d{4})-(\d{2})-(\d{2})", "(\d{4}) (\d{2})  (\d{2})"]
@@ -65,7 +69,12 @@ def ExtractDate(date, out=sys.stdout):
   return 0
   
 def TVRageSeasonEpisode(title, season, episode, out=sys.stdout):
-  """ TVRageSeasonEpisode -- Get and format subtitle and description from TVRage based on a season and episode"""
+  """ TVRageSeasonEpisode -- Get and format subtitle and description from TVRage based on a season and episode
+      title   = Official name of TV-show ... as exact as possible, please
+      season  = season number (int)
+      episode = episode number (int)
+      returns the correct title and full description
+  """
   try:
     #get the TVrage show information
     tvshow = tvrage.api.Show(title)
@@ -80,7 +89,13 @@ def TVRageSeasonEpisode(title, season, episode, out=sys.stdout):
     return 0
     
 def TVRageDate(title, year, month, day, out=sys.stdout):
-  """ TVRageDate -- Get and format subtitle and description from TVRage based on a date"""
+  """ TVRageDate -- Get and format subtitle and description from TVRage based on a date
+      title   = Official name of TV-show ... as exact as possible, please
+      year    = year number (int)
+      month   = month number (int)
+      day     = number (int)
+      returns the correct subtitle and full description then the season and episode number
+  """
   found = False
   try:
     #get the TVrage show information
@@ -103,7 +118,12 @@ def TVRageDate(title, year, month, day, out=sys.stdout):
     return 0
     
 def TTVDBSeasonEpisode(title, season, episode, out=sys.stdout):
-  """ TTVDBSeasonEpisode -- Get and format subtitle and description from The TV Database based on a season and episode"""
+  """ TTVDBSeasonEpisode -- Get and format subtitle and description from The TV Database based on a season and episode
+      title   = Official name of TV-show ... as exact as possible, please
+      season  = season number (int)
+      episode = episode number (int)
+      returns the correct title and full description, season, episode and TTVDBID
+  """
   found = False
   try:
     #get the TVrage show information
@@ -121,7 +141,13 @@ def TTVDBSeasonEpisode(title, season, episode, out=sys.stdout):
     return 0
 
 def TTVDBDate(title, year, month, day, out=sys.stdout):
-  """ TTVDBDate -- Get and format subtitle and description from The TV Database based on a date"""
+  """ TTVDBDate -- Get and format subtitle and description from The TV Database based on a date
+      title   = Official name of TV-show ... as exact as possible, please
+      year    = year number (int)
+      month   = month number (int)
+      day     = number (int)
+      returns the correct subtitle and full description then the season and episode number and lastly the TTVDBID
+  """
   found = False
   try:
     #get the TTVDB show information
@@ -144,7 +170,11 @@ def TTVDBDate(title, year, month, day, out=sys.stdout):
     return 0 
 
 def TTVDBSubtitle(title, subtitle, out=sys.stdout):
-  """ TTVDBDate -- Get and format subtitle and description from The TV Database based on a show subtitle"""
+  """ TTVDBDate -- Get and format subtitle and description from The TV Database based on a show subtitle
+      title    = Official name of TV-show ... as exact as possible, please
+      subtitle = correct official subtitle of the show
+      returns the correct subtitle and full description then the season and episode number and lastly the TTVDBID
+  """
   found = False
   try:
     #get the TTVDB show information
