@@ -80,13 +80,13 @@ def Download(torrent_filename, tmpname, info_func,
     
   #check if torrent is already being downloaded
   for keys in tc.info():
-    if tc.info(keys)[keys].fields['hashString'] == hashlib.sha1(bencode.bencode(info)).hexdigest():
+    if tc.info(keys)[keys].fields['hashString'] == hashlib.sha1(bencode.bencode(info)).hexdigest() or tc.info(keys)[keys].fields['hashString'] == info:
       out.write('The torrent is being downloaded by transmission. No need to add it again.\n')
       tkey = keys
   # and if not found add the new file to transmission
   if tkey == -1:
     try:
-      torrent = tc.add_uri(torrent_filename, download_dir=dir)
+      torrent = tc.add_uri(torrent_filename, download_dir=tmpname)
       out.write('Added torrent...')
       tkey = torrent.keys()[0]
     except transmissionrpc.TransmissionError, e:

@@ -493,29 +493,30 @@ class MythNetTvProgram:
     else:
       chanid = chanid['chanid']
     filename = '%s/%s' %(datadir, self.persistant['filename'])
-    dirname_torrent = '%s/%s' %(datadir, self.persistant['filename'])
+    dirname_torrent = '%s/%s' %(datadir, self.persistant['tmp_name'])
     out.write('Importing %s\n' % filename)
     utility.recursive_file_permissions(filename,-1,-1,0o777)
     
-    if os.path.isdir(filename):
+    if os.path.isdir(self.persistant['tmp_name']):
       # go through all subdirectories to find RAR files
-      for root, dirnames, ents in os.walk(filename):
+      for root, dirnames, ents in os.walk(self.persistant['tmp_name']):
         for counter in fnmatch.filter(ents, '*'):
 	  # only pick those files that are single rars or the first part of a rar
-          if counter.endswith('.rar') or counter.endswith('zip') and not (re.search('part[1-9][0-9]', counter) or re.search('part0[2-9]', counter)):
+          if (counter.endswith('.rar') or counter.endswith('zip')) and not (re.search('part[1-9][0-9]', counter) or re.search('part0[2-9]', counter)):
             out.write('Extracting RARs, please wait... ')
-            UnRAR2.RarFile(os.path.join(root, counter)).extract(path=filename)
+            UnRAR2.RarFile(os.path.join(root, counter)).extract(path=self.persistant['tmp_name'])
             out.write('Extracted %s\n' % counter)
       handled = False
 
       # go throuhg all sundirectories again, to find video files
-      out.write('Searching for videofiles in %s\n' % filename)
-      for root, dirnames, ents in os.walk(filename):
+      out.write('Searching for videofiles in %s\n' % self.persistant['tmp_name'])
+      for root, dirnames, ents in os.walk(self.persistant['tmp_name']):
         for counter in fnmatch.filter(ents, '*'):
           for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
             if counter.endswith(extn) and not fnmatch.fnmatch(counter, '*ample*'):
               filename = '%s/%s' %(root, counter)
-              out.write('Picked %s from the directory\n' % filename)
+              out.write('Picked %s from the directory\n' % self.persistant['tmp_name'])
+              #self.persistant['filename'] = filename
               handled = True
 
       if not handled:
@@ -658,11 +659,11 @@ class MythNetTvProgram:
     # clean up after us...
     try:
       if self.persistant['mime_type'] == 'application/x-bittorrent':
-        out.write('deleting temporary directory %s...\n' % dirname_torrent)
+        out.write('deleting temporary directory %s...\n' % self.persistant['tmp_name'])
         try:
-          shutil.rmtree(dirname_torrent)
+          shutil.rmtree(self.persistant['tmp_name'])
         except:
-          out.write('Error: deleting temporary directory %s. Delete manually.\n' % dirname_torrent)
+          out.write('Error: deleting temporary directory %s. Delete manually.\n' % self.persistant['tmp_name'])
     except:
       pass
 
