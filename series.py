@@ -28,13 +28,8 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
     if match:
       return int(match.group(1)), int(match.group(2))
       found = True
-<<<<<<< HEAD
       break
-    except:
-      pass
-=======
->>>>>>> c2b2e1a59fe07c7da6a2cf3ddf5c20c27e129823
-  
+ 
   #similar problem with titles containing "xx of yy"
   matchme = ["(\d{2})\s*of\s*(\d{2})", "(\d{1})\s*of\s*(\d{2})", "(\d{1})\s*of\s*(\d{1})", "(\d{2})\s*/\s*(\d{2})", "(\d{1})\s*/\s*(\d{2})", "(\d{1})\s*/\s*(\d{1})"]
   
@@ -44,12 +39,7 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
     if match:
       return 1, int(match.group(1))
       found = True
-<<<<<<< HEAD
       break
-    except:
-      pass
-=======
->>>>>>> c2b2e1a59fe07c7da6a2cf3ddf5c20c27e129823
   
   # if we could not find anything...
   return 0
