@@ -404,29 +404,6 @@ class MythNetTvProgram:
         self.persistant['filename'] = tmpname.split('/')[-1]
         total += int(self.persistant.get('transfered', 0))
 
-    elif self.persistant['url'].startswith('magnet'):
-      if self.persistant.get('tmp_name', '') == '':
-        (tmpfd, tmpname) = tempfile.mkstemp(dir=datadir)
-        os.close(tmpfd)
-        os.unlink(tmpname)
-        self.persistant['tmp_name'] = tmpname
-        self.Store()
-      else:
-        tmpname = self.persistant['tmp_name']
-
-      # Upload rate can either be the shipped default, a new default from
-      # the settings tables, or a temporary override
-
-      if FLAGS.uploadrate:
-        upload_rate = FLAGS.uploadrate
-      else:
-        upload_rate = self.db.GetSettingWithDefault('uploadrate', 100)
-
-      total = bittorrent.Download(self.persistant['url'], tmpname, self.Info,
-                                  upload_rate=upload_rate,
-                                  verbose=FLAGS.verbose, out=out)
-        
-        
     elif self.persistant['url'].startswith('http://vimeo'):
       vimeoid = re.search('clip_id=(\d+)', self.persistant['url'])
       out.write('VimeoID:     %s\n' % vimeoid.group(1))

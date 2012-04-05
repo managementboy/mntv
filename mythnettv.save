@@ -1,0 +1,733 @@
+#!/usr/bin/python
+
+# This script requires that mplayer be installed
+
+# Copyright (C) Michael Still (mikal@stillhq.com) 2006, 2007, 2008
+# Copyright (C) Elkin Fricke (managementboy@gmail.com) 2011
+# Released under the terms of the GNU GPL v2
+
+# Latest source is always at http://www.stillhq.com/mythtv/mythnettv/
+
+
+import commands
+import datetime
+import feedparser
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import traceback
+import types
+
+import database
+import gflags
+import program
+import proxyhandler
+import syndication
+import mythnettvcore
+import utility
+import video
+
+__author__ = 'Michael Still (mikal@stillhq.com), Elkin Fricke (managementboy@gmail.com)'
+__version__ = 'Release 8'
+
+# Define command line flags
+FLAGS = gflags.FLAGS
+gflags.DEFINE_string('datadir', '',
+                     'The location of the data directory. Will change the '
+                     'previous value')
+gflags.DEFINE_string('defaultuploadrate', '',
+                     'The default bittorrent upload rate. If set will '
+                     'change the previous value')
+
+gflags.DEFINE_boolean('prompt', True,
+                      'Prompt for user input when required')
+gflags.DEFINE_boolean('promptforannounce', True,
+                      'Should the user be prompted about subscribing to the '
+                      'announce video feed?')
+
+
+def GetPossible(array, index):
+  """GetPossible -- get a value from an array, handling its absence nicely"""
+
+  try:
+    return array[index]
+  except:
+    return None
+
+
+def Usage(out):
+  out.write("""Unknown command line. Try one of:
+
+(manual usage)
+  url <url> <title> : to download an RSS feed and load the shows
+                      from it into the TODO list. The title is
+                      as the show title in the MythTV user
+                      interface
+  file <url> <title>: to do the same, but from a file, with a show
+                      title like url above
+  download <num>    : to download that number of shows from the
+                      TODO list. We download some of the oldest
+                      first, and then grab some of the newest as
+                      well.
+  download <num> <title filter>
+                    : the same as above, but filter to only 
+                      download shows with a title exactly 
+                      matching the specified filter
+  download <num> <title filter> <subtitle filter>
+                    : the same as above, but with a regexp title
+                      filter as well
+  download <num> <title filter> <subtitle filter> justone
+                    : the same as above, but download just one
+                      and then mark all other matches as read
+
+  cleartodo         : permanently remove all items from the TODO
+                      list
+  markread <num>    : interactively mark some of the oldest <num>
+                      shows as already downloaded and imported
+  markread <num> <title filter>
+                    : the same as above, but filter to only mark
+                      shows with a title exactly matching the
+                      specified filter
+  markread <num> <title filter> <subtitle filter>
+                    : the same as above, but with a regexp title
+                      filter as well
+  markunread <num> <title filter> : interactively mark some of the 
+                      youngest <num> shows as not already downloaded
+                      and imported filtered by actual title.
+
+  resetattempts     : interactively reset the number of attempts
+                      for matching programs to zero. This will
+                      cause previously failed programs to be
+                      retried
+  resetattempts <title filter>
+                    : as above, but only for shows with this title
+  unfail            : interactively scan through list of failed downloads
+                      asking the user if they should be tried again
+  unfail <title filter>
+                    : as above, but only for shows which match the title filter
+
+(handy stuff)
+  todoremote        : add a remote URL to the TODO list. This will
+                      prompt for needed information about the
+                      video, and set the date of the program to
+                      now
+  todoremote <url> <title> <subtitle> <description>
+                    : the same as above, but don't prompt for
+                      anything
+  importremote      : download and immediately import the named
+                      URL. Will prompt for needed information
+  importremote <url> <title> <subtitle> <description>
+                    : the same as above, but don't prompt for
+                      anything
+  importtorrent <url> <title> <subtitle> <description>
+                    : the same as above, but force the URL to be
+                      treated as a torrent. This is useful when
+                      MythNetTV doesn't automatically detect
+                      that the URL is to a torrent file.
+                      short version: imptor
+  importlocal <file>: import the named file, using the title, 
+                      subtitle and description from the command
+                      line. The file will be left on disk.
+  importlocal <file>: import the named file. The file will be
+                      left on disk. Will prompt for needed
+                      information
+  importmanylocal <path> <regexp> <title>:
+                      import all the files from path matching
+                      regexp. title is use as the title for the
+                      program, and the filename is used as the
+                      subtitle
+
+(subscription management)
+  subscribe <url> <title> <inetref>
+                    : subscribe to a URL, and specify the show 
+                      title and inetref
+  list              : list subscriptions
+  unsubscribe <url> <title>
+		    : unsubscribe from a feed, and remove feed
+		      programs from TODO list
+  update            : add new programs from subscribed URLs to the
+                      TODO list
+  update <title>    : as above, but just for this program
+
+(things you can do to subscriptions)
+  archive <title> <path>
+                    : archive all programs with this title to the
+                      specified path. This is useful for shows you
+                      download and import, but want to build a
+                      non-MythTV archive of as well
+  category <title> <category>
+                    : set the category for a given program. The
+                      category is used for parental filtering  within
+                      MythTV.
+  group <title> <group>
+                    : set the group for a given program. The
+                      group is used as a recording group within
+                      MythTV.
+  http_proxy <url regexp> <proxy>
+                    : you can choose to use a HTTP proxy for URL
+                      requests matching a given regular expression.
+                      Use this command to define such an entry. This
+                      might be handy if some of the programs you
+                      wish to subscribe to are only accessible over
+                      a VPN.
+  http_proxy <url regexp> <proxy> <budget mb>
+                    : the same a s above, but you can specify the
+                      maximum number of megabytes to download via
+                      the proxy in a given day. To see proxy usage
+                      information, use the proxyusage command.
+
+(reporting)
+  statistics        : show some simple statistics about MythNetTV
+                      short form: stats
+  log               : dump the current internal log entries
+  nextdownload <num>
+                    : if you executed download <num>, what would
+                      be downloaded?
+  nextdownload <num> <title filter>
+                    : as above, but only for the specified title
+  proxyusage        : print a simple report on HTTP proxy usage over
+                      the last seven days
+
+(debugging)
+  videodir          : show where MythNetTV thinks it should be
+                      placing video files
+  explainvideodir   : verbosely explain why that video directory was
+                      selected. This can help debug when the wrong
+                      video directory is being used, or no video
+                      directory at all is found
+
+(metadata)
+  tvrage <title> <ragetvtitle>
+  ttvdb <title>
+                    : update all recordings that match the title
+                      with the subtitle and description
+                      found on TVRage/TTVDB.
+                      Current subtitle must contain the season
+                      and episode in a format like S##E##
+                      or ##x##
+  updatemeta <filename>  : guess the subtitle and video
+                      type of a recording by analyzing it with                      
+                      mplayer and update the recorded EPG data
+""")
+
+  out.write('\n\nAdditionally, you can use these global flags:%s\n' % FLAGS)
+  sys.exit(1)
+
+
+def main(argv, out=sys.stdout):
+  # Parse flags
+  try:
+    argv = FLAGS(argv)
+  except gflags.FlagsError, e:
+    out.write('%s\n' % e)
+    Usage(out)
+    
+  db = database.MythNetTvDatabase()
+
+  # Update the data directory is set
+  if FLAGS.datadir:
+    db.WriteSetting('datadir', FLAGS.datadir)
+    print 'Updated the data directory to %s' % FLAGS.datadir
+
+  # Update the default upload rate for bittorrent if set
+  if FLAGS.defaultuploadrate:
+    db.WriteSetting('uploadrate', FLAGS.defaultuploadrate)
+    print ('Updated default bittorrent upload rate to %s'
+           % FLAGS.defaultuploadrate)
+
+  # Make sure the data directory exists
+  datadir = db.GetSettingWithDefault('datadir', FLAGS.datadir)
+  if not os.path.exists(datadir):
+    out.write('You need to create the configured data directory at "%s"\n'
+              % datadir)
+    sys.exit(1)
+
+  # Ask if we can subscribe the user to the announcement video feed
+  announce_prompted = db.GetSettingWithDefault('promptedforannounce',
+                                               not FLAGS.promptforannounce)
+  if not announce_prompted:
+    row = db.GetOneRow('select * from mythnettv_subscriptions where '
+                       'title="MythNetTV announcements";')
+    if not row and FLAGS.promptforannounce:
+      out.write('You are not currently subscribed to the MythNetTV\n'
+                'announcements video feed. This feed is very low volume\n'
+                'and is used to announce important things like new releases\n'
+                'and major bug fixes.\n\n'
+                'Would you like to be subscribed? You will only be asked\n'
+                'this once.\n\n')
+      confirm = raw_input('Type yes to subscribe: ')
+
+      if confirm == 'yes':
+        mythnettvcore.Subscribe('http://www.stillhq.com/mythtv/mythnettv/'
+                                'announce/feed.xml',
+                                'MythNetTV announcements')
+        out.write('Subscribed to MythNetTV announcements\n')
+
+    db.WriteSetting('promptedforannounce', True)
+
+  # TODO(mikal): This command line processing is ghetto
+  if len(argv) == 1:
+    out.write('Invalid command line: %s\n' % ' '.join(argv))
+    Usage(out)
+
+  if argv[1] == 'url':
+    # Go and grab the XML file from the remote HTTP server, and then parse it
+    # as an RSS feed with enclosures. Populates a TODO list in 
+    # mythnettv_programs
+    
+    # Check to see if the correct number of args has been passed
+    if len(argv) == 4:
+      proxy = proxyhandler.HttpHandler(db)
+      xmlfile = proxy.Open(argv[2], out=out)
+      syndication.Sync(db, xmlfile, argv[3], out=out)
+    else:
+      out.write('Not enough arguments, please ensure you specify all values\n')
+
+  elif argv[1] == 'file':
+    # Treat the local file as an RSS feed. Populates a TODO list in
+    # mythnettv_programs
+    xmlfile = open(argv[2])
+    syndication.Sync(db, xmlfile, argv[3])
+
+  elif argv[1] == 'download':
+    # Download the specified number of programs and import them into MythTV
+    filter = GetPossible(argv, 3)
+    subtitle_filter = GetPossible(argv, 4)
+    just_one = GetPossible(argv, 5) == 'justone'
+
+    success = False
+    previous = []
+    for guid in mythnettvcore.NextDownloads(argv[2], filter,
+                                            subtitle_filter,
+                                            out=out):
+      if not just_one:
+        mythnettvcore.DownloadAndImport(db, guid, out=out)
+
+      elif just_one and not success:
+        success = mythnettvcore.DownloadAndImport(db, guid, out=out)
+        if not success:
+          previous.append(guid)
+
+      else:
+        prog = program.MythNetTvProgram(db)
+        prog.Load(guid)
+        out.write('Skipping because we already have one\n')
+        out.write('  %s: %s\n' %(prog.GetTitle(), prog.GetSubtitle()))
+        out.write('  (%s)\n\n' % prog.GetDate())
+        prog.SetImported()
+        prog.Store()
+
+    # If some failed before we had one work, then we now need to mark them
+    # read if we're fetching just one
+    if just_one and previous:
+      for guid in previous:
+        prog = program.MythNetTvProgram(db)
+        prog.Load(guid)
+        out.write('Skipping because we already have one\n')
+        out.write('  %s: %s\n' %(prog.GetTitle(), prog.GetSubtitle()))
+        out.write('  (%s)\n\n' % prog.GetDate())
+        prog.SetImported()
+        prog.Store()
+
+    # And now make sure there aren't any stragglers
+    for guid in db.GetWaitingForImport():
+      prog = program.MythNetTvProgram(db)
+      prog.Load(guid)
+      try:
+        prog.Import(out=out)
+      except Exception, e:
+        out.write('Couldn\'t straggling %s, removing it from the queue\n'
+                  '  Error: %s\n\n'
+                  % (guid, e))
+        prog.SetImported()
+        prog.Store()
+
+  elif argv[1] == 'todoremote':
+    # Add a remote URL to the TODO list. We have to prompt for a bunch of
+    # stuff because we don't have a "real" RSS feed
+    prog = program.MythNetTvProgram(db)
+    url = GetPossible(argv, 2)
+    title = GetPossible(argv, 3)
+    subtitle = GetPossible(argv, 4)
+    description = GetPossible(argv, 5)
+    prog.FromInteractive(url, title, subtitle, description)
+
+  elif argv[1] == 'importremote' or argv[1] == 'importtorrent' or argv[1] == 'imptor':
+    # Download a remote file and then import it as a program. We have to
+    # prompt for details here, because this didn't come from a "real" RSS feed
+    prog = program.MythNetTvProgram(db)
+    url = GetPossible(argv, 2)
+    title = GetPossible(argv, 3)
+    subtitle = GetPossible(argv, 4)
+    description = GetPossible(argv, 5)
+
+    # TODO(mikal)
+    # It is _possible_ that this show has already been created and
+    # that this is an attempt to restart a download. Check.
+
+    prog.FromInteractive(url, title, subtitle, description)
+    prog.Store()
+    if argv[1] == 'importtorrent':
+      prog.SetMime('application/x-bittorrent')
+    if prog.Download(db.GetSettingWithDefault('datadir',
+                                              FLAGS.datadir),
+                     out=out) == True:
+      prog.Import(out=out)
+
+  elif argv[1] == 'importmanylocal':
+    # Import files matching regexp from path with the title
+    path = argv[2]
+    regexp = argv[3]
+    title = argv[4]
+
+    rxp = re.compile(regexp)
+    for ent in os.listdir(path):
+      if os.path.isfile('%s/%s' %(path, ent)):
+        out.write('\nConsidering %s\n' % ent)
+        m = rxp.match(ent)
+        if m:
+          prog = program.MythNetTvProgram(db)
+          prog.SetUrl(ent)
+          prog.FromInteractive('%s/%s' %(path, ent),
+                               title,
+                               ent,
+                               '-')
+          prog.CopyLocalFile(db.GetSettingWithDefault('datadir',
+                                                      FLAGS.datadir),
+                             out=out)
+          prog.Import(out=out)
+
+  elif argv[1] == 'importlocal':
+    # Take a local file, copy it to the temporary directory, and then import
+    # it as if we had downloaded it
+    prog = program.MythNetTvProgram(db)
+    prog.SetUrl(argv[2])
+    url = GetPossible(argv, 2)
+    title = GetPossible(argv, 3)
+    subtitle = GetPossible(argv, 4)
+    description = GetPossible(argv, 5)
+    prog.FromInteractive(url, title, subtitle, description)
+    prog.CopyLocalFile(db.GetSettingWithDefault('datadir',
+                                                FLAGS.datadir),
+                       out=out)
+    prog.Import(out=out)
+
+  elif argv[1] == 'subscribe':
+    # Subscribe to an RSS feed
+    mythnettvcore.Subscribe(argv[2], argv[3], argv[4])
+    out.write('Subscribed to %s\n' % argv[3])
+
+  elif argv[1] == 'list':
+    # List subscribed RSS feeds
+    proxy = proxyhandler.HttpHandler(db)
+    
+    for row in db.GetRows('select distinct(title) from '
+                          'mythnettv_subscriptions order by title'):
+      out.write('%s\n' % row['title'])
+      for subrow in db.GetRows('select * from mythnettv_subscriptions where '
+                               'title="%s";' % row['title']):
+        out.write(' - %s' % subrow['url'])
+        
+        (proxy_host, budget) = proxy.LookupProxy(subrow['url'])
+        if proxy_host:
+          out.write(' (proxy: %s' % proxy_host)
+          if budget:
+            out.write(' budget %s)' % utility.DisplayFriendlySize(budget))
+          else:
+            out.write(')')
+        out.write('\n')
+          
+        if subrow['inactive'] == 1:
+          out.write(' (inactive)\n')
+
+      subrow = db.GetOneRow('select * from mythnettv_archive '
+                            'where title="%s";'
+                            % row['title'])
+      if subrow:
+        out.write('  Archived to %s\n' % subrow['path'])
+
+      subrow = db.GetOneRow('select * from mythnettv_category '
+                            'where title="%s";'
+                            % row['title'])
+      if subrow:
+        out.write('  Category is %s\n' % subrow['category'])
+
+      subrow = db.GetOneRow('select * from mythnettv_group '
+                            'where title="%s";'
+                            % row['title'])
+      if subrow:
+        out.write('  Group is %s\n' % subrow['recgroup'])
+
+      out.write('\n')
+
+  elif argv[1] == 'unsubscribe':
+    # Remove a subscription to an RSS feed
+    if db.ExecuteSql('update mythnettv_subscriptions set inactive=1 '
+                     'where url = "%s";'
+                     % argv[2]) == 0:
+      print 'No subscriptions with this URL found!'
+
+    if db.ExecuteSql('update mythnettv_programs set inactive=1 '
+                     'where title = "%s";'
+                     % argv[3]) == 0:
+      print 'No subscriptions with this title found!'
+
+  elif argv[1] == 'update':
+    # Update the TODO list based on subscriptions
+    title = GetPossible(argv, 2)
+    mythnettvcore.Update(out, title)
+
+  elif argv[1] == 'archive':
+    db.WriteOneRow('mythnettv_archive', 'title', {'title': argv[2],
+                                                  'path': argv[3]})
+
+  elif argv[1] == 'category':
+    db.WriteOneRow('mythnettv_category', 'title', {'title': argv[2],
+                                                   'category': argv[3]})
+
+  elif argv[1] == 'group':
+    db.WriteOneRow('mythnettv_group', 'title', {'title': argv[2],
+                                                'recgroup': argv[3]})
+
+  elif argv[1] == 'http_proxy':
+    budget = GetPossible(argv, 4)
+    if budget:
+      budget = int(budget) * 1024 * 1024
+      out.write('Setting proxy budget to %d bytes\n' % budget)
+
+    db.WriteOneRow('mythnettv_proxies', 'url', {'url': argv[2],
+                                                'http_proxy': argv[3],
+                                                'daily_budget': budget})
+
+  elif argv[1] == 'statistics' or argv[1] == 'stats':
+    # Display some simple stats about the state of MythMYTHNETTV
+#    row = db.GetOneRow('select count(guid) from mythnettv_programs;')
+#    out.write('Programs tracked: %d\n' % row['count(guid)'])
+#
+#    for show in db.GetRows('select distinct(title) from mythnettv_programs '
+#                           'where title is not NULL;'):
+#      row = db.GetOneRow('select count(guid) from mythnettv_programs where '
+#                         'title = "%s";' % show['title'])
+#      out.write('  %s: %d\n' %(show['title'], row['count(guid)']))
+#    out.write('\n')
+    
+    row = db.GetOneRow('select count(guid) from mythnettv_programs where '
+                       'download_finished is NULL and title is not NULL '
+                       'and inactive is NULL;')
+    out.write('Programs still to download: %d\n'
+              % row['count(guid)'])
+
+    for show in db.GetRows('select distinct(title) from mythnettv_programs '
+                           'where title is not NULL and '
+                           'inactive is NULL and '
+                           'download_finished is NULL;'):
+      row = db.GetOneRow('select count(guid) from mythnettv_programs where '
+                         'title = "%s" and inactive is NULL '
+                         'and download_finished is NULL;'
+                         % show['title'])
+      out.write('  %s: %d\n' %(show['title'], row['count(guid)']))
+    out.write('\n')
+
+    try:
+      row = db.GetOneRow('select sum(transfered) from mythnettv_programs;')
+      out.write('Data transferred: %s\n'
+             % (utility.DisplayFriendlySize(int(row['sum(transfered)']))))
+    except:
+      # TODO(mikal): I am sure there is a better way of doing this
+      dummy = 'blah'
+
+  elif argv[1] == 'log':
+    for logline in db.GetRows('select * from mythnettv_log order by '
+                              'sequence asc;'):
+      out.write('%s %s\n' %(logline['timestamp'], logline['message']))
+
+  elif argv[1] == 'nextdownload':
+    filter = GetPossible(argv, 3)
+    subtitle_filter = GetPossible(argv, 4)
+    for guid in mythnettvcore.NextDownloads(argv[2], filter,
+                                            subtitle_filter,
+                                            out=out):
+      out.write('%s\n' % guid)
+      prog = program.MythNetTvProgram(db)
+      prog.Load(guid)
+      out.write('  %s: %s\n\n' %(prog.GetTitle(), prog.GetSubtitle()))
+
+  elif argv[1] == 'cleartodo':
+    out.write("""The command you are executing will permanently remove all
+shows from the TODO list, as well as any record of shows which have
+already been downloaded. Basically you\'ll be back at the start
+again, although your preferences will remain set. Are you sure
+you want to do this?\n\n""")
+    confirm = raw_input('Type yes to do this: ')
+
+    if confirm == 'yes':
+      db.ExecuteSql('delete from mythnettv_programs;')
+      out.write('Deleted\n')
+
+  elif argv[1] == 'markread':
+    filter = GetPossible(argv, 3)
+    subtitle_filter = GetPossible(argv, 4)
+
+    for guid in mythnettvcore.NextDownloads(argv[2], filter,
+                                            subtitle_filter):
+      prog = program.MythNetTvProgram(db)
+      prog.Load(guid)
+      out.write('  %s: %s\n' %(prog.GetTitle(), prog.GetSubtitle()))
+      out.write('  (%s)\n' % prog.GetDate())
+      out.write('  (%s)\n\n' % guid)
+
+      if FLAGS.prompt:
+        out.write('Are you sure you want to mark this show as downloaded?'
+                  '\n\n')
+        confirm = raw_input('Type yes to do this: ')
+      else:
+        confirm = 'yes'
+
+      if confirm == 'yes':
+        prog.SetImported()
+        prog.Store()
+        out.write('Done\n')
+      out.write('\n')
+
+  elif argv[1] == 'markunread':
+    for row in db.GetRows('select guid from mythnettv_programs where '
+                          '(download_finished=1 or imported=1 or '
+                          'attempts is not null or failed=1 )'
+                          'and title LIKE %s'
+                          'order by date desc limit %d;'
+                          % (db.FormatSqlValue('', argv[3]), int(argv[2]))):
+      prog = program.MythNetTvProgram(db)
+      prog.Load(row['guid'])
+      out.write('  %s: %s\n' %(prog.GetTitle(), prog.GetSubtitle()))
+      out.write('  (%s)\n\n' % prog.GetDate())
+
+      if FLAGS.prompt:
+        out.write('Are you sure you want to mark this show as not downloaded?'
+                  '\n\n')
+        confirm = raw_input('Type yes to do this: ')
+      else:
+        confirm = 'yes'
+
+      if confirm == 'yes':
+        prog.SetNew()
+        prog.Store()
+        out.write('Done\n')
+      out.write('\n')
+
+  elif argv[1] == 'resetattempts':
+    filter = GetPossible(argv, 2)
+    if filter:
+      filter_sql = 'and title="%s"' % filter
+    else:
+      filter_sql = ''
+
+    for row in db.GetRows('select * from mythnettv_programs where '
+                          'attempts > 0 and download_finished is null %s;'
+                          % filter_sql):
+      prog = program.MythNetTvProgram(db)
+      prog.Load(row['guid'])
+      out.write('  %s: %s\n' %(prog.GetTitle(), prog.GetSubtitle()))
+      out.write('  (%s)\n\n' % prog.GetDate())
+
+      if FLAGS.prompt:
+        out.write('Are you sure you want to reset the attempt count for this '
+                  'show?\n\n')
+        confirm = raw_input('Type yes to do this: ')
+      else:
+        confirm = 'yes'
+
+      if confirm == 'yes':
+        prog.SetAttempts(0)
+        prog.Store()
+        out.write('Done\n')
+      out.write('\n')
+
+  elif argv[1] == 'unfail':
+    filter = GetPossible(argv, 2)
+    if filter:
+      filter_sql = 'and title="%s"' % filter
+    else:
+      filter_sql = ''
+
+    for row in db.GetRows('select * from mythnettv_programs where '
+                          'failed is not null and '
+                          'download_finished is not null %s;'
+                          % filter_sql):
+      prog = program.MythNetTvProgram(db)
+      prog.Load(row['guid'])
+      out.write('  %s: %s\n' %(prog.GetTitle(), prog.GetSubtitle()))
+      out.write('  (%s)\n\n' % prog.GetDate())
+
+      if FLAGS.prompt:
+        out.write('Are you sure you want to retry this failed download?\n\n')
+        confirm = raw_input('Type yes to do this: ')
+      else:
+        confirm = 'yes'
+
+      if confirm == 'yes':
+        prog.Unfail()
+        out.write('Done\n')
+      out.write('\n')
+
+  elif argv[1] == 'proxyusage':
+    proxy = proxyhandler.HttpHandler(db)
+    proxy.ReportRecentProxyUsage(out=out)
+
+  elif argv[1] == 'videodir':
+    try:
+      print 'Video directory is: %s' % utility.GetVideoDir(db)
+    except utility.FilenameException:
+      print 'No video directory found! Use explainvideodir to debug'
+
+  elif argv[1] == 'explainvideodir':
+    utility.ExplainVideoDir(db)
+
+  elif argv[1] == 'updatemeta':
+    filename = GetPossible(argv, 2)
+    prog = program.MythNetTvProgram(db)
+    prog.Updatemeta(filename)
+
+  elif argv[1] == 'tvrage':
+    showtitle = GetPossible(argv, 2)
+    prog = program.MythNetTvProgram(db)
+    prog.TVRage(showtitle)
+  
+  elif argv[1] == 'ttvdb':
+    showtitle = GetPossible(argv, 2)
+    prog = program.MythNetTvProgram(db)
+    prog.TTVDB(showtitle)
+
+  elif argv[1] == 'titlefix':
+    oldtitle = GetPossible(argv, 2)
+    newtitle = GetPossible(argv, 3)
+    prog = program.MythNetTvProgram(db)
+    prog.titlefix(oldtitle, newtitle)
+
+  elif argv[1] == 'sefix':
+    title = GetPossible(argv, 2)
+    prog = program.MythNetTvProgram(db)
+    prog.sepfix(title)
+  
+  elif argv[1] == 'titlesubtitlefix':
+    db.ExecuteSql ('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s" AND subtitle LIKE "%%%s%%";' % (argv[3], argv[3], argv[2], argv[3]))
+#    db.ExecuteSql ('UPDATE recorded SET subtitle = replace(subtitle,"- ","") WHERE title LIKE "%s" AND subtitle LIKE "- %"' % (argv[3], argv[3]))
+    prog = program.MythNetTvProgram(db)
+    prog.TTVDB(argv[3])
+
+  elif argv[1] == 'fix14':
+    prog = program.MythNetTvProgram(db)
+    for row in db.GetRows('SELECT title, subtitle, basename, starttime FROM recorded WHERE title LIKE "%s";' % (argv[2])):
+      row2 = db.GetOneRow('SELECT title, subtitle FROM mythnettv_programs WHERE title LIKE "%s" and filename LIKE "%%%s%%";' % (row['title'], 
+                          vimeoid = re.search('.$*', row['basename'])))
+
+      out.write('Subtitle: %s' % row2['subtitle'])
+
+  else:
+    Usage(out)
+
+if __name__ == "__main__":
+  main(sys.argv)

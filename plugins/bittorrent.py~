@@ -68,8 +68,8 @@ def Download(torrent_filename, tmpname, info_func,
     metainfo = bencode.bdecode(torrent_file.read())
     info = metainfo['info']
   else:
-    info = re.search('btih:([a-zA-Z\d]{40})', torrent_filename).group(1)
-    #out.write(torrent_filename)
+    #info = re.search('btih_([a-zA-Z\d]{40})', torrent_filename).group(1)
+    out.write(torrent_filename)
     
   #check if torrent is already being downloaded
   for keys in tc.info():

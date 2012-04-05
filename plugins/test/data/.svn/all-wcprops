@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 31
+/svn/!svn/ver/2/trunk/test/data
+END
+test_torrent.torrent
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/!svn/ver/2/trunk/test/data/test_torrent.torrent
+END
+foo_torrent.txt.torrent
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/!svn/ver/2/trunk/test/data/foo_torrent.txt.torrent
+END
+bar_torrent.txt.torrent
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/!svn/ver/2/trunk/test/data/bar_torrent.txt.torrent
+END

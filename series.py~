@@ -27,7 +27,6 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
       episode = int(re.search(search, seasonepisode).group(2))
       return season, episode
       found = True
-      break
     except:
       pass
   
@@ -41,7 +40,6 @@ def ExtractSeasonEpisode(seasonepisode, out=sys.stdout):
       episode = int(re.search(search, seasonepisode).group(1))
       return season, episode
       found = True
-      break
     except:
       pass
   
@@ -107,14 +105,15 @@ def TVRageDate(title, year, month, day, out=sys.stdout):
         if tvshow.season(seasoncount).episode(episodes).airdate == date(year, month, day):
           subtitle = date(year, month, day).strftime("%Y.%m.%d") + ' ' + tvshow.season(seasoncount).episode(episodes).title
           #return subtitle and description
-          if title == tvshow.season(seasoncount).episode(episodes).show:
-            return subtitle, utility.massageDescription(tvshow.season(seasoncount).episode(episodes).summary), tvshow.season(seasoncount).episode(episodes).season, tvshow.season(seasoncount).episode(episodes).number
-            found = True
+          out.write('%s' % tvshow.season(seasoncount).episode(episodes).show)
+#          if title == tvrageepisode.show:
+          return subtitle, utility.massageDescription(tvshow.season(seasoncount).episode(episodes).summary), tvshow.season(seasoncount).episode(episodes).season, tvshow.season(seasoncount).episode(episodes).number
+          found = True
       seasoncount = seasoncount - 1
   except:
     return 0
-  if not found:
-    return 0
+#  if not found:
+#    return 0
     
 def TTVDBSeasonEpisode(title, season, episode, out=sys.stdout):
   """ TTVDBSeasonEpisode -- Get and format subtitle and description from The TV Database based on a season and episode"""
@@ -167,7 +166,7 @@ def TTVDBSubtitle(title, subtitle, out=sys.stdout):
     for season in tvshow:
       for episode in tvshow[season]:
         if tvshow[season][episode]['episodename'] == subtitle:
-          return subtitle, utility.massageDescription(tvshow[season][episode]['overview'].encode('latin-1','ignore')), season, episode, tvshow[season][episode]['seriesid']
+          return subtitle, utility.massageDescription(tvshow[season][episode]['overview']), season, episode, tvshow[season][episode]['seriesid']
           found = True
   except:
     return 0

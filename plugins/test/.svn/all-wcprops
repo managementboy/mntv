@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 27
+/svn/!svn/ver/14/trunk/test
+END
+testTransmissionClient.py
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/!svn/ver/2/trunk/test/testTransmissionClient.py
+END
+README.html
+K 25
+svn:wc:ra_dav:version-url
+V 39
+/svn/!svn/ver/14/trunk/test/README.html
+END
+README.rst
+K 25
+svn:wc:ra_dav:version-url
+V 38
+/svn/!svn/ver/13/trunk/test/README.rst
+END
+__init__.py
+K 25
+svn:wc:ra_dav:version-url
+V 38
+/svn/!svn/ver/2/trunk/test/__init__.py
+END
