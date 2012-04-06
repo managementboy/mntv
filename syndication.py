@@ -140,18 +140,19 @@ def Sync(db, xmlfile, title, out=sys.stdout):
     if FLAGS.verbose:
       out.write('  Considering: %s: %s\n' %(title, subtitle))
 
+    # very crude, basic subtitle detection
+    if not done and db.GetOneRow('select * from mythnettv_programs '
+                                   'where title=%s and subtitle=%s;' %(db.FormatSqlValue('', title), db.FormatSqlValue('', subtitle))):
+      done = True
+      if FLAGS.verbose:
+        out.write('   Dupicate detected %s: %s\n' %(title, subtitle))
+      
+      
     for preferred in ['video/x-msvideo', 'video/mp4', 'video/x-xvid',
                       'video/wmv', 'video/x-ms-wmv', 'video/quicktime',
                       'video/x-m4v', 'video/x-flv', 'video/m4v',
                       'application/x-bittorrent', 'video/msvideo',
                       'video/vnd.objectvideo', 'video/ms-wmv', 'video/mpeg']:
-
-       # very basic subtitle detection
-      if not done and db.GetOneRow('select * from mythnettv_programs '
-                                   'where title=%s and subtitle=%s;' %(db.FormatSqlValue('', title), db.FormatSqlValue('', subtitle))):
-        done = True
-        if FLAGS.verbose:
-          out.write(' Dupicate detected %s: %s\n' %(title, subtitle))
 
       if not done and videos.has_key(preferred):
         Download(db,
@@ -167,9 +168,9 @@ def Sync(db, xmlfile, title, out=sys.stdout):
         done = True
 
         
-    if entry.has_key('link'):
+    if not done and entry.has_key('link'):
       if entry['link'].startswith('magnet'):
-	out.write('Warning:treating the link as if it where a Magnet link\n')
+	out.write('    Warning: treating the link as if it where a Magnet link\n')
 	Download(db,
                entry['link'],
                entry.guid,
@@ -185,7 +186,7 @@ def Sync(db, xmlfile, title, out=sys.stdout):
     if not done and videos.has_key('text/html'):
       db.Log('Warning: Treating text/html as an video enclosure type for '
              '%s' % entry.guid)
-      out.write('Warning: Treating text/html as an video enclosure from %s for'
+      out.write('    Warning: Treating text/html as an video enclosure from %s for'
                 ' %s pointing to %s\n'
                 %(repr(videos.keys()), subtitle, videos['text/html']['url']))
 
