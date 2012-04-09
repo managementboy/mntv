@@ -157,7 +157,7 @@ def Sync(db, xmlfile, title, out=sys.stdout):
       if not done and videos.has_key(preferred):
         Download(db,
                  videos[preferred]['url'],
-                 entry.guid,
+                 utility.hashtitlesubtitle(title, subtitle),
                  preferred,
                  title,
                  subtitle,
@@ -170,10 +170,11 @@ def Sync(db, xmlfile, title, out=sys.stdout):
         
     if not done and entry.has_key('link'):
       if entry['link'].startswith('magnet'):
-	out.write('    Warning: treating the link as if it where a Magnet link\n')
+	if FLAGS.verbose:
+	  out.write('    Warning: treating the link as if it where a Magnet link\n')
 	Download(db,
                entry['link'],
-               entry.guid,
+               utility.hashtitlesubtitle(title, subtitle),
                'application/x-bittorrent',
                title,
                subtitle,
@@ -185,14 +186,14 @@ def Sync(db, xmlfile, title, out=sys.stdout):
       
     if not done and videos.has_key('text/html'):
       db.Log('Warning: Treating text/html as an video enclosure type for '
-             '%s' % entry.guid)
+             '%s' % utility.hashtitlesubtitle(title, subtitle))
       out.write('    Warning: Treating text/html as an video enclosure from %s for'
                 ' %s pointing to %s\n'
                 %(repr(videos.keys()), subtitle, videos['text/html']['url']))
 
       Download(db,
                videos['text/html']['url'],
-               entry.guid,
+               utility.hashtitlesubtitle(title, subtitle),
                'text/html',
                title,
                subtitle,
@@ -207,7 +208,7 @@ def Sync(db, xmlfile, title, out=sys.stdout):
       if videos['application/x-shockwave-flash']['url'].startswith('http://vimeo'):
         Download(db,
                 videos['application/x-shockwave-flash']['url'],
-                entry.guid,
+                utility.hashtitlesubtitle(title, subtitle),
                 'application/x-shockwave-flash',
                 title,
                 subtitle,
@@ -229,7 +230,7 @@ def Sync(db, xmlfile, title, out=sys.stdout):
                 % videos.keys()[0])
       Download(db,
                videos[videos.keys()[0]]['url'],
-               entry.guid,
+               utility.hashtitlesubtitle(title, subtitle),
                videos.keys()[0],
                title,
                subtitle,

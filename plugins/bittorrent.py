@@ -87,7 +87,7 @@ def Download(torrent_filename, tmpname, info_func,
   if tkey == -1:
     try:
       torrent = tc.add_uri(torrent_filename, download_dir=tmpname)
-      out.write('Added torrent...')
+      out.write(' Added torrent to transmission...')
       tkey = torrent.keys()[0]
     except transmissionrpc.TransmissionError, e:
       out.write('Failed to add torrent "%s"' % e)
@@ -98,19 +98,16 @@ def Download(torrent_filename, tmpname, info_func,
   try:
     start_time = datetime.datetime.now()
     while not download_ok or not exit:
-      time.sleep(5)
+      time.sleep(10) # don't hit transmission too much
       oldprogress = tc.info(tkey)[tkey].progress
-      #out.write('%s... ' % tc.info(tkey)[tkey].status)
-      #if tc.info(tkey)[tkey].status == 'seeding':
       if tc.info(tkey)[tkey].progress == 100:
-        #out.write('Seeding torrent...')
         download_ok = True
         break
       
       # kill download if it does not start after a few minutes
       if tc.info(tkey)[tkey].progress == 0:
         wait_time = datetime.datetime.now() - start_time
-        out.write('\nHave waited %s for download to start\n'
+        out.write('\r Have waited %s for download to start'
                   %(time.strftime('%H:%M:%S', time.gmtime(wait_time.seconds))))
         if wait_time.seconds > 600:
           out.write('Waited %s for download to start. Giving up.\n'
@@ -118,9 +115,10 @@ def Download(torrent_filename, tmpname, info_func,
           exit = True
       # print the percent of download done if download started
       if tc.info(tkey)[tkey].progress >= 0:
-        out.write('%.2f%% downloaded' % tc.info(tkey)[tkey].progress)
-        out.write('\t%.2f %s left' % format_size(tc.info(tkey)[tkey].leftUntilDone))
-        out.write('\t\tETA %- 13s\r' % tc.info(tkey)[tkey].format_eta())
+        out.write("\r                                                                          \r") # clean up
+        out.write(' %.2f%% downloaded' % tc.info(tkey)[tkey].progress) # use the formating provided by transmissionrpc
+        out.write(' \t%.2f %s left' % format_size(tc.info(tkey)[tkey].leftUntilDone))
+        out.write(' \t\tETA %- 13s\r' % tc.info(tkey)[tkey].format_eta())
         out.flush()
         if tc.info(tkey)[tkey].format_eta() == 'unknown' or tc.info(tkey)[tkey].format_eta() == 'not available':
           stalecounter = stalecounter + 1

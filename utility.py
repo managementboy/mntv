@@ -292,3 +292,14 @@ def recursive_file_permissions(path,mode,uid=-1,gid=-1):
         os.chmod(os.path.join(path,item),mode)
       except:
         print('File permissions on {0} not updated due to error.'.format(os.path.join(path,item)))
+        
+import hashlib
+def hashtitlesubtitle(title,subtitle):
+  '''
+  Makes a hash of a title and a subtitle and returns it as hex
+  '''
+  m = hashlib.md5()
+  m.update(title)
+  if subtitle:
+    m.update(subtitle)
+  return m.hexdigest()

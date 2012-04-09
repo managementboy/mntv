@@ -158,8 +158,9 @@ class MythNetTvProgram:
       if not self.persistant.has_key(key):
         self.persistant[key] = Prompt(key)
 
-    # TODO(mikal): Should I generate a more unique GUID?
-    self.persistant['guid'] = self.persistant['url']
+    # The GUID is now generated as the hex value of a hash of title and Subtitle
+    # we make sure we therefore only have one download per title and subtitle
+    self.persistant['guid'] = utility.hashtitlesubtitle(title, subtitle)
     self.persistant['filename'] = SafeForFilename(self.GetFilename(
                                     self.persistant['url']))
 
@@ -253,7 +254,7 @@ class MythNetTvProgram:
     """
 
     filename = '%s/%s' %(datadir, self.persistant['filename'])
-    out.write('Destination will be %s\n' % filename)
+    out.write('Destination directory will be %s\n' % datadir)
     self.db.Log('Downloading %s to %s' %(self.persistant['guid'], filename))
     return filename
 
@@ -362,7 +363,8 @@ class MythNetTvProgram:
     self.Store()
 
     total = 0
-
+    
+    #deal with torrent downloads but not magnet links
     if self.persistant['url'].endswith('torrent') \
       or (self.persistant.get('mime_type', '').endswith('torrent')
       and not self.persistant['url'].startswith('magnet')):
@@ -404,7 +406,10 @@ class MythNetTvProgram:
         self.persistant['filename'] = tmpname.split('/')[-1]
         total += int(self.persistant.get('transfered', 0))
 
+        
+    # Now deal with magnet links
     elif self.persistant['url'].startswith('magnet'):
+      #TODO do we realy need this for magnet links?
       if self.persistant.get('tmp_name', '') == '':
         (tmpfd, tmpname) = tempfile.mkstemp(dir=datadir)
         os.close(tmpfd)
@@ -426,13 +431,15 @@ class MythNetTvProgram:
                                   upload_rate=upload_rate,
                                   verbose=FLAGS.verbose, out=out)
         
-        
+    # deal with Vimeo downloads
     elif self.persistant['url'].startswith('http://vimeo'):
       vimeoid = re.search('clip_id=(\d+)', self.persistant['url'])
       out.write('VimeoID:     %s\n' % vimeoid.group(1))
       total = streamingsites.Download('Vimeo', vimeoid.group(1), datadir)
       self.persistant['filename'] = total
 
+    #deal with YouTube downloads
+    #TODO does it realy work?
     elif self.persistant['url'].startswith('http://www.youtube'):
       url_data = urlparse.urlparse(self.persistant['url'])
       query = urlparse.parse_qs(url_data.query)
@@ -457,7 +464,7 @@ class MythNetTvProgram:
     self.persistant['size'] = repr(total)
     self.Store()
       
-    out.write('Done\n')
+    out.write('Download complete...\n')
     self.db.Log('Download of %s done' % self.persistant['guid'])
     return True
 
@@ -515,7 +522,7 @@ class MythNetTvProgram:
           for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
             if counter.endswith(extn) and not fnmatch.fnmatch(counter, '*ample*'):
               filename = '%s/%s' %(root, counter)
-              out.write('Picked %s from the directory\n' % self.persistant['tmp_name'])
+              out.write(' Picked %s from the directory\n' % counter)
               #self.persistant['filename'] = filename
               handled = True
 
@@ -795,7 +802,7 @@ class MythNetTvProgram:
 #      pass
 
     self.SetImported()
-    out.write('Done\n\n')
+    out.write('Finished\n\n')
 
     # And now mark the video as imported
     return
@@ -904,6 +911,20 @@ class MythNetTvProgram:
         except:
           out.write('did not find by subtitle...\n')
           pass
+
+      if found == False:
+	try:
+          se = series.ExtractDate(seasonepisode)
+          titledescription = series.TTVDBDate(showtitle, se[0], se[1], se[2])
+          print (titledescription[4])
+          # update start and finish if we have the correct date from TVRage
+          out.write('Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3], titledescription[4]))
+          found = True
+        except:
+	  out.write('did not find by date...\n')
+          pass
+
+	
       # only update those values we got non Null
       try:
         if titledescription[0]:
@@ -912,6 +933,9 @@ class MythNetTvProgram:
         if titledescription[1]:
           self.db.ExecuteSql ('update recorded set description=%s WHERE basename = "%s";' 
                              % (self.db.FormatSqlValue('', titledescription[1]), row['basename']))
+        else:
+	  self.db.ExecuteSql ('update recorded set description=%s WHERE basename = "%s";' 
+                             % (self.db.FormatSqlValue('', ''), row['basename']))
         if titledescription[4]:
           self.db.ExecuteSql ('update recorded set inetref=%s WHERE basename = "%s";' 
                              % (titledescription[4], row['basename']))
@@ -920,8 +944,9 @@ class MythNetTvProgram:
                              % (titledescription[2], row['basename']))
         if titledescription[3]:
           self.db.ExecuteSql ('update recorded set episode=%s WHERE basename = "%s";' 
-                             % (titledescription[3], row['basename']))
+                             % (titledescription[3], row['basename']))                   
       except:
+	out.write('No updates made...\n')
         pass
 
   def titlefix(self, oldtitle, newtitle, out=sys.stdout):
