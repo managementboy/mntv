@@ -593,11 +593,13 @@ class MythNetTvDatabase:
                                'add column inetref text;')
       self.db_connection.query('alter table mythnettv_programs '
                                'add column inetref text;')
+      self.db_connection.query('alter table mythnettv_subscriptions '
+                               'add column chanid int(11);')
       self.version = '22'
 
     if self.version != CURRENT_SCHEMA:
       print 'Unknown schema version. This is a bug. Please report it to'
-      print 'mythnettv@stillhq.com'
+      print 'managementboy@gmail.com'
       sys.exit(1)
 
     self.db_connection.query('update mythnettv_settings set value = "%s" '
