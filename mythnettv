@@ -724,10 +724,16 @@ you want to do this?\n\n""")
     prog.sepfix(title)
   
   elif argv[1] == 'titlesubtitlefix':
-    db.ExecuteSql ('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s" AND subtitle LIKE "%%%s%%";' % (argv[3], argv[3], argv[2], argv[3]))
-#    db.ExecuteSql ('UPDATE recorded SET subtitle = replace(subtitle,"- ","") WHERE title LIKE "%s" AND subtitle LIKE "- %"' % (argv[3], argv[3]))
+    row = db.GetOneRow('SELECT subtitle FROM recorded where title LIKE "%s";' % argv[2])
+    out.write('\n\nCurrent Subtitle: %s\n' % (row['subtitle']))
+    prompt = ""
+    subtitle = program.Prompt(prompt)
+    db.ExecuteSql('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s" AND subtitle LIKE "%%%s%%";' 
+                  % (subtitle, subtitle, argv[2], subtitle))
+
     prog = program.MythNetTvProgram(db)
-    prog.TTVDB(argv[3])
+    prog.TVRage(subtitle)
+    prog.TTVDB(subtitle)
 
   elif argv[1] == 'rescue':
     prog = program.MythNetTvProgram(db)

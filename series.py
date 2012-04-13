@@ -82,7 +82,7 @@ def TVRageSeasonEpisode(title, season, episode, out=sys.stdout):
     tvshow = tvrage.api.Show(title)
     #then get the TVrage Episode information
     tvrageepisode = tvshow.season(season).episode(episode)
-    if title == tvrageepisode.show:
+    if title.lower() == tvrageepisode.show.lower():
     #return subtitle and description
       return tvrageepisode.title, utility.massageDescription(tvrageepisode.summary)
     else:

@@ -252,8 +252,14 @@ class MythNetTvProgram:
     """TemporaryFilename -- calculate the filename to use in the temporary
     directory
     """
-
+    # put filename from url in database
+    try:
+      self.persistant['filename'] = SafeForFilename(self.GetFilename(self.persistant['url']))
+    except:
+      pass
     filename = '%s/%s' %(datadir, self.persistant['filename'])
+    # Store in database
+    self.persistant['tmp_name'] = filename
     out.write('Destination directory will be %s\n' % datadir)
     self.db.Log('Downloading %s to %s' %(self.persistant['guid'], filename))
     return filename
@@ -500,7 +506,6 @@ class MythNetTvProgram:
     else:
       chanid = chanid['chanid']
     filename = '%s/%s' %(datadir, self.persistant['filename'])
-    dirname_torrent = '%s/%s' %(datadir, self.persistant['tmp_name'])
     out.write('Importing %s\n' % filename)
     utility.recursive_file_permissions(filename,-1,-1,0o777)
     
@@ -855,23 +860,25 @@ class MythNetTvProgram:
       for search in matchme:
         try:
           season = int(re.search(search, seasonepisode).group(1)) - 1
-          out.write("Found an aditional Season or Series within the subtitle: will add %s\n" % season)
+          out.write(" Found an aditional Season or Series within the subtitle: will add %s\n" % season)
         except:
           pass
-      out.write("Getting show from TVRage... ")
+      out.write(" Searching for show at TVRage... \n")
       try:
         se = series.ExtractSeasonEpisode(seasonepisode)
         titledescription = series.TVRageSeasonEpisode(showtitle, se[0] + season, se[1])
-        out.write('Found %s %s %s %s\n' % (showtitle, titledescription[0], se[0] + season, se[1]))
-        self.db.ExecuteSql ('update recorded set description=%s, title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (titledescription[1], showtitle, titledescription[0], se[0] + season, se[1], row['basename']))
+        out.write(' Found %s %s %s %s\n' % (showtitle, titledescription[0], se[0] + season, se[1]))
+        self.db.ExecuteSql ('update recorded set description="%s", title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (titledescription[1], showtitle, titledescription[0], se[0] + season, se[1], row['basename']))
       except:
+        out.write('  did not find by season/episode number...\n')
         pass
       try:
         se = series.ExtractDate(seasonepisode)
         titledescription = series.TVRageDate(showtitle, se[0], se[1], se[2])
-        out.write('Found %s %s %s %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3]))
-        self.db.ExecuteSql ('update recorded set description=%s, title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', titledescription[1]), showtitle, titledescription[0], titledescription[2], titledescription[3], row['basename']))
+        out.write(' Found %s %s %s %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3]))
+        self.db.ExecuteSql ('update recorded set description="%s", title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', titledescription[1]), showtitle, titledescription[0], titledescription[2], titledescription[3], row['basename']))
       except:
+        out.write('  did not find by date...\n')
         pass
 
   def TTVDB(self, showtitle, out=sys.stdout):
@@ -885,31 +892,31 @@ class MythNetTvProgram:
       for search in matchme:
         try:
           season = int(re.search(search, seasonepisode).group(1)) - 1
-          out.write("Found an aditional Season or Series within the subtitle: will add %s\n" % season)
+          out.write("  Found an aditional Season or Series within the subtitle: will add %s\n" % season)
         except:
           pass
       try:
         if re.search("[Ss]eason One", seasonepisode):
           season = 0
-          out.write("Found an aditional Season or Series within the subtitle: will add %s\n" % season)
+          out.write("  Found an aditional Season or Series within the subtitle: will add %s\n" % season)
       except:
         pass
-      out.write("Getting show from The TV database... \n")
+      out.write(" Searching for show in the TV database... \n")
       found = False
       try:
         se = series.ExtractSeasonEpisode(seasonepisode)        
         titledescription = series.TTVDBSeasonEpisode(showtitle, se[0] + season, se[1])
-        out.write('Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' % (showtitle, titledescription[0], se[0] + season, se[1], titledescription[2]))
+        out.write(' Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' % (showtitle, titledescription[0], se[0] + season, se[1], titledescription[2]))
         found = True
       except:
-        out.write('did not find by season/episode number...\n')
+        out.write('  did not find by season/episode number...\n')
         pass
       if found == False:
         try:
           titledescription = series.TTVDBSubtitle(showtitle, seasonepisode)
-          out.write('Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3], titledescription[4]))
+          out.write(' Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3], titledescription[4]))
         except:
-          out.write('did not find by subtitle...\n')
+          out.write('  did not find by subtitle...\n')
           pass
 
       if found == False:
@@ -918,10 +925,10 @@ class MythNetTvProgram:
           titledescription = series.TTVDBDate(showtitle, se[0], se[1], se[2])
           print (titledescription[4])
           # update start and finish if we have the correct date from TVRage
-          out.write('Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3], titledescription[4]))
+          out.write(' Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3], titledescription[4]))
           found = True
         except:
-	  out.write('did not find by date...\n')
+	  out.write('  did not find by date...\n')
           pass
 
 	
@@ -952,7 +959,8 @@ class MythNetTvProgram:
   def titlefix(self, oldtitle, newtitle, out=sys.stdout):
     """titlefix -- fix the current title with a new one """
     # this replaces the old title with the new one, removes any references to the new title form the subtitle
-    self.db.ExecuteSql('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s" AND subtitle LIKE "%%%s%%";' % (newtitle, newtitle, oldtitle, newtitle))
+    self.db.ExecuteSql('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s";' 
+                      % (newtitle, newtitle, oldtitle))
 
   def sefix(self, title, out=sys.stdout):
     """sepfix -- fix the season and episode data by trying to guess it from subtitle """
