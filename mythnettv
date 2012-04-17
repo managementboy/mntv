@@ -725,15 +725,18 @@ you want to do this?\n\n""")
   
   elif argv[1] == 'titlesubtitlefix':
     row = db.GetOneRow('SELECT subtitle FROM recorded where title LIKE "%s";' % argv[2])
-    out.write('\n\nCurrent Subtitle: %s\n' % (row['subtitle']))
-    prompt = ""
-    subtitle = program.Prompt(prompt)
-    db.ExecuteSql('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s" AND subtitle LIKE "%%%s%%";' 
+    if row:
+      out.write('\n\nCurrent Subtitle: %s\n' % (row['subtitle']))
+      prompt = ""
+      subtitle = program.Prompt(prompt)
+      db.ExecuteSql('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s" AND subtitle LIKE "%%%s%%";' 
                   % (subtitle, subtitle, argv[2], subtitle))
 
-    prog = program.MythNetTvProgram(db)
-    prog.TVRage(subtitle)
-    prog.TTVDB(subtitle)
+      prog = program.MythNetTvProgram(db)
+      prog.TVRage(subtitle)
+      prog.TTVDB(subtitle)
+    else:
+      out.write('Sorry, no shows with the title %s available\n' % argv[2])
 
   elif argv[1] == 'rescue':
     prog = program.MythNetTvProgram(db)

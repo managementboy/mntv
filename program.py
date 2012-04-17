@@ -259,7 +259,7 @@ class MythNetTvProgram:
       pass
     filename = '%s/%s' %(datadir, self.persistant['filename'])
     # Store in database
-    self.persistant['tmp_name'] = filename
+    #self.persistant['tmp_name'] = filename
     out.write('Destination directory will be %s\n' % datadir)
     self.db.Log('Downloading %s to %s' %(self.persistant['guid'], filename))
     return filename
@@ -914,7 +914,8 @@ class MythNetTvProgram:
       if found == False:
         try:
           titledescription = series.TTVDBSubtitle(showtitle, seasonepisode)
-          out.write(' Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3], titledescription[4]))
+          out.write(' Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' 
+                    % (showtitle, titledescription[0], titledescription[2], titledescription[3], titledescription[4]))
         except:
           out.write('  did not find by subtitle...\n')
           pass
@@ -925,7 +926,8 @@ class MythNetTvProgram:
           titledescription = series.TTVDBDate(showtitle, se[0], se[1], se[2])
           print (titledescription[4])
           # update start and finish if we have the correct date from TVRage
-          out.write(' Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3], titledescription[4]))
+          out.write(' Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' 
+                    % (showtitle, titledescription[0], titledescription[2], titledescription[3], titledescription[4]))
           found = True
         except:
 	  out.write('  did not find by date...\n')
