@@ -507,48 +507,47 @@ class MythNetTvProgram:
       chanid = chanid['chanid']
     filename = '%s/%s' %(datadir, self.persistant['filename'])
     out.write('Importing %s\n' % filename)
-    utility.recursive_file_permissions(filename,-1,-1,0o777)
-    
-    if os.path.isdir(self.persistant['tmp_name']):
+    try:
+      if os.path.isdir(self.persistant['tmp_name']):
+        utility.recursive_file_permissions(filename,-1,-1,0o777)
       # go through all subdirectories to find RAR files
-      for root, dirnames, ents in os.walk(self.persistant['tmp_name']):
-        for counter in fnmatch.filter(ents, '*'):
-	  # only pick those files that are single rars or the first part of a rar
-          if (counter.endswith('.rar') or counter.endswith('zip')) and not (re.search('part[1-9][0-9]', counter) or re.search('part0[2-9]', counter)):
-            out.write('Extracting RARs, please wait... ')
-            UnRAR2.RarFile(os.path.join(root, counter)).extract(path=self.persistant['tmp_name'])
-            out.write('Extracted %s\n' % counter)
-      handled = False
+        for root, dirnames, ents in os.walk(self.persistant['tmp_name']):
+          for counter in fnmatch.filter(ents, '*'):
+	    # only pick those files that are single rars or the first part of a rar
+            if (counter.endswith('.rar') or counter.endswith('zip')) and not (re.search('part[1-9][0-9]', counter) or re.search('part0[2-9]', counter)):
+              out.write('Extracting RARs, please wait... ')
+              UnRAR2.RarFile(os.path.join(root, counter)).extract(path=self.persistant['tmp_name'])
+              out.write('Extracted %s\n' % counter)
+        handled = False
 
-      # go throuhg all sundirectories again, to find video files
-      out.write('Searching for videofiles in %s\n' % self.persistant['tmp_name'])
-      for root, dirnames, ents in os.walk(self.persistant['tmp_name']):
-        for counter in fnmatch.filter(ents, '*'):
-          for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
-            if counter.endswith(extn) and not fnmatch.fnmatch(counter, '*ample*'):
-              filename = '%s/%s' %(root, counter)
-              out.write(' Picked %s from the directory\n' % counter)
-              #self.persistant['filename'] = filename
-              handled = True
-
-      if not handled:
-        raise DirectoryException(self.db,
-                                'Don\'t know how to handle this directory')
+        # go throuhg all sundirectories again, to find video files
+        out.write('Searching for videofiles in %s\n' % self.persistant['tmp_name'])
+        for root, dirnames, ents in os.walk(self.persistant['tmp_name']):
+          for counter in fnmatch.filter(ents, '*'):
+            for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
+              if counter.endswith(extn) and not fnmatch.fnmatch(counter, '*ample*'):
+                filename = '%s/%s' %(root, counter)
+                out.write(' Picked %s from the directory\n' % counter)
+                #self.persistant['filename'] = filename
+                handled = True
+   
+        if not handled:
+          raise DirectoryException(self.db,
+                                  'Don\'t know how to handle this directory')
+    except:
+      pass
 
     videodir = utility.GetVideoDir(self.db)
     vid = video.MythNetTvVideo(self.db, filename)
 
     # Try to use the publish time of the RSS entry as the start time...
-    # The tuple will be in the format: 2003, 8, 6, 20, 43, 20
     try:
-      #tuple = eval(self.persistant['parsed_date'])
-      #start = datetime.datetime(tuple[0], tuple[1], tuple[2], tuple[3],
-      #                          tuple[4], tuple[5])
       start = datetime.datetime.strptime(self.persistant['date'], '%Y-%m-%d %H:%M:%S')
+      #start = datetime.datetime.strptime(self.persistant['unparsed_date'], '%a, %d %b %Y %H:%M:%S')
       out.write('  databasetime\n')
     except:
       start = datetime.datetime.now()
-      out.write('  now as time %s\n' % self.persistant['date'])
+      out.write('  now as time %s\n' % start)
       
    
     # Ensure uniqueness for the start time
@@ -704,7 +703,8 @@ class MythNetTvProgram:
     if self.persistant['description'] == ' ':
       tmp_recorded[u'description'] = ''
     else:
-      tmp_recorded[u'description'] = self.db.FormatSqlValue('', self.persistant['description'])
+      #tmp_recorded[u'description'] = self.db.FormatSqlValue('', self.persistant['description'])
+      tmp_recorded[u'description'] = self.persistant['description']
     tmp_recorded[u'progstart'] = start
     tmp_recorded[u'progend'] = finish
     tmp_recorded[u'basename'] = dest_file

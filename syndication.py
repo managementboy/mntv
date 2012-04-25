@@ -146,7 +146,12 @@ def Sync(db, xmlfile, title, out=sys.stdout):
       done = True
       if FLAGS.verbose:
         out.write('   Dupicate detected %s: %s\n' %(title, subtitle))
-      
+    
+    if not done and db.GetOneRow('select * from mythnettv_programs '
+                                 'where guid="%s";' % utility.hashtitlesubtitle(title, subtitle)):
+      done = True
+      if FLAGS.verbose:
+        out.write('   Dupicate detected in GUID: %s\n' % utility.hashtitlesubtitle(title, subtitle))
       
     for preferred in ['video/x-msvideo', 'video/mp4', 'video/x-xvid',
                       'video/wmv', 'video/x-ms-wmv', 'video/quicktime',
