@@ -9,6 +9,7 @@ import os
 import sys
 import traceback
 import unicodedata
+import program
 
 import gflags
 FLAGS = gflags.FLAGS

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # Copyright (C) Michael Still (mikal@stillhq.com) 2006, 2007, 2008, 2009
-# Copyright (C) Elkin Fricke (elkin@elkin.de) 2011
+# Copyright (C) Elkin Fricke (elkin@elkin.de) 2011, 2012
 # Released under the terms of the GNU GPL v2
 
 import commands
@@ -845,11 +845,14 @@ class MythNetTvProgram:
     
   def TVRage(self, showtitle, out=sys.stdout):
     """TVRage -- Get episode information from TVRage"""
-
-    show = tvrage.api.Show(showtitle)
-    out.write('Show Name:    ' + show.name + '\n')
-    out.write('Seasons:      ' + str(show.seasons) + '\n')
-    out.write('Last episode: ' + str(show.latest_episode) + '\n')
+    
+    try:
+      show = tvrage.api.Show(showtitle)
+    except:
+      return
+    #out.write('Show Name:    ' + show.name + '\n')
+    #out.write('Seasons:      ' + str(show.seasons) + '\n')
+    #out.write('Last episode: ' + str(show.latest_episode) + '\n')
     #showtitle = "The Daily Show with Jon Stewart"
     
     season = 0
