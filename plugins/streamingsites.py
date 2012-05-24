@@ -30,6 +30,7 @@ def Download(site, identifier, datadir):
     download_ok = True
   except (urllib2.HTTPError, IOError) as e:
     print e
+ 
   
   
   if not download_ok:

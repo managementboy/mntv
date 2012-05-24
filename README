@@ -28,7 +28,12 @@ http://www.feedparser.org. On Debian or Ubuntu you can install it like this:
 
 $ sudo apt-get install python-feedparser
 
-You Python ctypes support. On Debian / Ubuntu, its as simple as:
+If you want to import Youtube or Vimeo videos you need py-videodownloader, 
+available on git:
+https://github.com/offbyone/py-videodownloader/tree/fix-youtube
+make sure you download the fix-youtube branch.
+
+You might need Python ctypes support. On Debian / Ubuntu, its as simple as:
 
 $ sudo apt-get install python-ctypes
 

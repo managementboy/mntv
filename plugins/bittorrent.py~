@@ -49,16 +49,19 @@ def Download(torrent_filename, tmpname, info_func,
   """
   tkey = -1  
   dir = tmpname
-  out.write('Create new temporary directory... ')  
+  if FLAGS.verbose:
+    out.write('Create new temporary directory... ')  
   if not os.path.exists(dir):
     os.makedirs(dir)
     os.chmod(dir,0o777)
-    out.write('done!\n')
+    if FLAGS.verbose:
+      out.write('done!\n')
   else:
-    out.write('Strange, it is already there! Please fix.\n') 
+    out.write('Temporary directory %s exists.\n' % dir) 
 #    return 0
 
-  out.write('Now fetching the bittorrent data\n')
+  if FLAGS.verbose:
+    out.write('Now fetching the bittorrent data\n')
   download_ok = False
   exit = False
   
@@ -107,7 +110,7 @@ def Download(torrent_filename, tmpname, info_func,
       # kill download if it does not start after a few minutes
       if tc.info(tkey)[tkey].progress == 0:
         wait_time = datetime.datetime.now() - start_time
-        out.write('\r Have waited %s for download to start\n'
+        out.write('\r Have waited %s for download to start'
                   %(time.strftime('%H:%M:%S', time.gmtime(wait_time.seconds))))
         if wait_time.seconds > 600:
           out.write('Waited %s for download to start. Giving up.\n'

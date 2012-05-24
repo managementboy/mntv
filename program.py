@@ -327,7 +327,8 @@ class MythNetTvProgram:
       one_hour = datetime.timedelta(hours=6)
     one_hour_ago = datetime.datetime.now() - one_hour
 
-    out.write('Considering %s: %s\n' %(self.persistant['title'],
+    if FLAGS.verbose:
+      out.write('Considering %s: %s\n' %(self.persistant['title'],
                                       self.persistant['subtitle']))
     
     if 'last_attempt' in self.persistant and \
@@ -506,7 +507,8 @@ class MythNetTvProgram:
     else:
       chanid = chanid['chanid']
     filename = '%s/%s' %(datadir, self.persistant['filename'])
-    out.write('Importing %s\n' % filename)
+    if FLAGS.verbose:
+      out.write('Importing %s\n' % filename)
     try:
       if os.path.isdir(self.persistant['tmp_name']):
         utility.recursive_file_permissions(filename,-1,-1,0o777)
@@ -515,19 +517,23 @@ class MythNetTvProgram:
           for counter in fnmatch.filter(ents, '*'):
 	    # only pick those files that are single rars or the first part of a rar
             if (counter.endswith('.rar') or counter.endswith('zip')) and not (re.search('part[1-9][0-9]', counter) or re.search('part0[2-9]', counter)):
-              out.write('Extracting RARs, please wait... ')
+              if FLAGS.verbose:
+		out.write('Extracting RARs, please wait... ')
               UnRAR2.RarFile(os.path.join(root, counter)).extract(path=self.persistant['tmp_name'])
-              out.write('Extracted %s\n' % counter)
+              if FLAGS.verbose:
+		out.write('Extracted %s\n' % counter)
         handled = False
 
-        # go throuhg all sundirectories again, to find video files
-        out.write('Searching for videofiles in %s\n' % self.persistant['tmp_name'])
+        # go through all sundirectories again, to find video files
+        if FLAGS.verbose:
+	  out.write('Searching for videofiles in %s\n' % self.persistant['tmp_name'])
         for root, dirnames, ents in os.walk(self.persistant['tmp_name']):
           for counter in fnmatch.filter(ents, '*'):
             for extn in ['.avi', '.wmv', '.mp4', '.mkv']:
               if counter.endswith(extn) and not fnmatch.fnmatch(counter, '*ample*'):
                 filename = '%s/%s' %(root, counter)
-                out.write(' Picked %s from the directory\n' % counter)
+                if FLAGS.verbose:
+		  out.write(' Picked %s from the directory\n' % counter)
                 #self.persistant['filename'] = filename
                 handled = True
    
@@ -542,12 +548,14 @@ class MythNetTvProgram:
 
     # Try to use the publish time of the RSS entry as the start time...
     try:
-      start = datetime.datetime.strptime(self.persistant['date'], '%Y-%m-%d %H:%M:%S')
+      start = datetime.datetime.strptime(str(self.persistant['date']), '%Y-%m-%d %H:%M:%S')
       #start = datetime.datetime.strptime(self.persistant['unparsed_date'], '%a, %d %b %Y %H:%M:%S')
-      out.write('  databasetime\n')
+      if FLAGS.verbose:
+	out.write('  Using database time as timestamp for recording\n')
     except:
       start = datetime.datetime.now()
-      out.write('  now as time %s\n' % start)
+      if FLAGS.verbose:
+	out.write('  Using now as timestamp for recording - %s\n' % start)
       
    
     # Ensure uniqueness for the start time
@@ -608,8 +616,8 @@ class MythNetTvProgram:
       realseason = titledescription[2]
       realepisode = titledescription[3]
       # update start and finish if we have the correct date from TVRage
-      start = start.replace (se[0], se[1], se[2])
-      finish = finish.replace (se[0], se[1], se[2])
+      start = start.replace (year=se[0], month=se[1], day=se[2])
+      finish = finish.replace (year=se[0], month=se[1], day=se[2])
       inetref = titledescription[4]
       if FLAGS.verbose:
 	out.write("Found on TVRage or TTVDB: S%sE%s inetref:%s\n" % (realseason, realepisode, inetref))
@@ -659,7 +667,7 @@ class MythNetTvProgram:
     dest_file = '%d_%s' %(epoch, transcoded_filename.replace(' ', '_'))
     
     # moving is better than copying as it uses less space and 
-    # once the file is gone, it will not be imported again
+    # once the file is gone, it can not be imported again
     try:
       shutil.move('%s' % filename,
                   '%s/%s' %(videodir, dest_file))
@@ -670,7 +678,8 @@ class MythNetTvProgram:
     # clean up after us...
     try:
       if self.persistant['mime_type'] == 'application/x-bittorrent':
-        out.write('deleting temporary directory %s...\n' % self.persistant['tmp_name'])
+        if FLAGS.verbose:
+	  out.write('deleting temporary directory %s...\n' % self.persistant['tmp_name'])
         try:
           shutil.rmtree(self.persistant['tmp_name'])
         except:
@@ -686,13 +695,17 @@ class MythNetTvProgram:
     filestats = os.stat('%s/%s' %(videodir, dest_file))
     self.persistant['size'] = filestats [stat.ST_SIZE]
     
-    if self.persistant['description'] == None:
+    if not self.persistant['description']:
       self.persistant['description'] = ''
-    if self.persistant['subtitle'] == None:
+      if FLAGS.verbose:
+	out.write('Empty description field\n')
+    if not self.persistant['subtitle']:
+      if FLAGS.verbose:
+	out.write('Empty subtitle field\n')
       self.persistant['subtitle'] = ''
       
     # add the recording to the database using the MythTV python bindings
-    tmp_recorded={}
+    tmp_recorded={} # we need a place to store
     tmp_recorded[u'chanid'] = chanid
     tmp_recorded[u'starttime'] = start
     tmp_recorded[u'endtime'] = finish
@@ -703,7 +716,6 @@ class MythNetTvProgram:
     if self.persistant['description'] == ' ':
       tmp_recorded[u'description'] = ''
     else:
-      #tmp_recorded[u'description'] = self.db.FormatSqlValue('', self.persistant['description'])
       tmp_recorded[u'description'] = self.persistant['description']
     tmp_recorded[u'progstart'] = start
     tmp_recorded[u'progend'] = finish
@@ -713,23 +725,22 @@ class MythNetTvProgram:
     tmp_recorded[u'hostname'] = socket.gethostname()
 
     # add aspect to markup table
-    if vid.values['ID_VIDEO_ASPECT']:
-      #aspecttype = 0
+    if vid.values['ID_VIDEO_WIDTH']:
+      aspect = float(vid.values['ID_VIDEO_WIDTH'])/float(vid.values['ID_VIDEO_HEIGHT'])
       if FLAGS.verbose:
-        out.write('Storing aspect ratio: %s\n' % vid.values['ID_VIDEO_ASPECT'])
-      if float(vid.values['ID_VIDEO_ASPECT']) < 1.41:
+        out.write('Storing aspect ratio: %s\n' % aspect)
+      if aspect < 1.41:
         aspecttype = 11
-      elif float(vid.values['ID_VIDEO_ASPECT']) < 1.81:
+      elif aspect < 1.81:
         aspecttype = 12
-      elif float(vid.values['ID_VIDEO_ASPECT']) < 2.31:
+      elif aspect < 2.31:
         aspecttype = 13 
       try:
         self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
                          'values (%s, %s, 1, %s, NULL)'
                            %(chanid, self.db.FormatSqlValue('', start), aspecttype))
       except:
-        if FLAGS.verbose:
-          out.write('Storing aspect ratio: %s\n' % vid.values['ID_VIDEO_ASPECT'])
+        out.write('Error storing aspect ratio: %s\n' % aspect)
         pass
 
     # if the height and/or width of the recording is known, store it in the markuptable
@@ -798,13 +809,13 @@ class MythNetTvProgram:
 
     # generate preview, just so it doesn't need to be done later
 #   time.sleep(5)
-#    try:
+    try:
 #      commands.getoutput('mythpreviewgen --loglevel err --infile "%s/%s"'
 #                       % (videodir, dest_file))
-#      commands.getoutput('ffmpegthumbnailer -s 0 -i "%s/%s" -o "%s/%s"'
-#                        % (videodir, dest_file, videodir, dest_file))
-#    except:
-#      pass
+      commands.getoutput('ffmpegthumbnailer -s 0 -i "%s/%s" -o "%s/%s"'
+                        % (videodir, dest_file, videodir, dest_file))
+    except:
+      pass
 
     self.SetImported()
     out.write('Finished\n\n')
@@ -873,7 +884,8 @@ class MythNetTvProgram:
         out.write(' Found %s %s %s %s\n' % (showtitle, titledescription[0], se[0] + season, se[1]))
         self.db.ExecuteSql ('update recorded set description="%s", title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (titledescription[1], showtitle, titledescription[0], se[0] + season, se[1], row['basename']))
       except:
-        out.write('  did not find by season/episode number...\n')
+	if FLAGS.verbose:
+	  out.write('  did not find by season/episode number...\n')
         pass
       try:
         se = series.ExtractDate(seasonepisode)
@@ -881,7 +893,8 @@ class MythNetTvProgram:
         out.write(' Found %s %s %s %s\n' % (showtitle, titledescription[0], titledescription[2], titledescription[3]))
         self.db.ExecuteSql ('update recorded set description="%s", title="%s", subtitle="%s", season=%s, episode=%s WHERE basename = "%s";' % (self.db.FormatSqlValue('', titledescription[1]), showtitle, titledescription[0], titledescription[2], titledescription[3], row['basename']))
       except:
-        out.write('  did not find by date...\n')
+        if FLAGS.verbose:
+	  out.write('  did not find by date...\n')
         pass
 
   def TTVDB(self, showtitle, out=sys.stdout):
@@ -889,7 +902,7 @@ class MythNetTvProgram:
    
     season = 0
     #loop for all recordings in the database that have the same show name
-    for row in self.db.GetRows('SELECT title, subtitle, basename, season, episode FROM recorded WHERE title LIKE "%s" OR subtitle LIKE "%s";' % (showtitle, showtitle)):
+    for row in self.db.GetRows('SELECT title, subtitle, basename, season, episode, starttime, endtime FROM recorded WHERE title LIKE "%s" OR subtitle LIKE "%s";' % (showtitle, showtitle)):
       seasonepisode = row['subtitle']
       matchme = ["[Ss]eason (\d{1})", "[Ss]eason(\d{1})", "[Ss]eries (\d{1})", "[Ss]eries(\d{1})"]
       for search in matchme:
@@ -899,7 +912,7 @@ class MythNetTvProgram:
         except:
           pass
       try:
-        if re.search("[Ss]eason One", seasonepisode):
+        if re.search("[Ss]eason One", seasonepisode) or re.search("[Ss]eries One", seasonepisode):
           season = 0
           out.write("  Found an aditional Season or Series within the subtitle: will add %s\n" % season)
       except:
@@ -912,7 +925,8 @@ class MythNetTvProgram:
         out.write(' Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' % (showtitle, titledescription[0], se[0] + season, se[1], titledescription[2]))
         found = True
       except:
-        out.write('  did not find by season/episode number...\n')
+        if FLAGS.verbose:
+	  out.write('  did not find by season/episode number...\n')
         pass
       if found == False:
         try:
@@ -920,7 +934,8 @@ class MythNetTvProgram:
           out.write(' Found: %s\t subtitle: %s\t Season:%s\t Episode:%s\t inetref: %s\n' 
                     % (showtitle, titledescription[0], titledescription[2], titledescription[3], titledescription[4]))
         except:
-          out.write('  did not find by subtitle...\n')
+	  if FLAGS.verbose:
+	    out.write('  did not find by subtitle...\n')
           pass
 
       if found == False:
@@ -933,7 +948,8 @@ class MythNetTvProgram:
                     % (showtitle, titledescription[0], titledescription[2], titledescription[3], titledescription[4]))
           found = True
         except:
-	  out.write('  did not find by date...\n')
+	  if FLAGS.verbose:
+	    out.write('  did not find by date...\n')
           pass
 
 	
@@ -957,6 +973,15 @@ class MythNetTvProgram:
         if titledescription[3]:
           self.db.ExecuteSql ('update recorded set episode=%s WHERE basename = "%s";' 
                              % (titledescription[3], row['basename']))                   
+        if se[0]:
+          # if date available in subtitle update start and end time accordingly
+          start = datetime.datetime.strptime(str(row['starttime']), '%Y-%m-%d %H:%M:%S')
+          start = start.replace(year=int(se[0]),month=int(se[1]),day=int(se[2])) 
+
+          end = datetime.datetime.strptime(str(row['endtime']), '%Y-%m-%d %H:%M:%S')
+          end = end.replace(int(se[0]),int(se[1]),int(se[2]))
+          self.db.ExecuteSql ('update recorded set starttime="%s", endtime="%s", progstart="%s", progend="%s" WHERE basename = "%s";'
+                             % (start, end, start, end, row['basename']))
       except:
 	out.write('No updates made...\n')
         pass

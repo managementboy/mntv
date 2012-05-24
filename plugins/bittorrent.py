@@ -49,16 +49,19 @@ def Download(torrent_filename, tmpname, info_func,
   """
   tkey = -1  
   dir = tmpname
-  out.write('Create new temporary directory... ')  
+  if FLAGS.verbose:
+    out.write('Create new temporary directory... ')  
   if not os.path.exists(dir):
     os.makedirs(dir)
     os.chmod(dir,0o777)
-    out.write('done!\n')
+    if FLAGS.verbose:
+      out.write('done!\n')
   else:
-    out.write('Strange, it is already there! Please fix.\n') 
+    out.write('Temporary directory %s exists.\n' % dir) 
 #    return 0
 
-  out.write('Now fetching the bittorrent data\n')
+  if FLAGS.verbose:
+    out.write('Now fetching the bittorrent data\n')
   download_ok = False
   exit = False
   
@@ -87,7 +90,8 @@ def Download(torrent_filename, tmpname, info_func,
   if tkey == -1:
     try:
       torrent = tc.add_uri(torrent_filename, download_dir=tmpname)
-      out.write(' Added torrent to transmission...')
+      if FLAGS.verbose:
+	out.write(' Added torrent to transmission...')
       tkey = torrent.keys()[0]
     except transmissionrpc.TransmissionError, e:
       out.write('Failed to add torrent "%s"' % e)
@@ -134,7 +138,8 @@ def Download(torrent_filename, tmpname, info_func,
 
   out.write('Bittorrent download finished\n')
   tc.remove(tkey, delete_data=False, timeout=None)
-  out.write('Torrent stopped, waiting a few seconds...\n')
+  if FLAGS.verbose:
+    out.write('Torrent stopped, waiting a few seconds...\n')
 
   if not download_ok:
     return 0
