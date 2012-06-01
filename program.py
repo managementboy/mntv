@@ -809,13 +809,13 @@ class MythNetTvProgram:
 
     # generate preview, just so it doesn't need to be done later
 #   time.sleep(5)
-    try:
+#    try:
 #      commands.getoutput('mythpreviewgen --loglevel err --infile "%s/%s"'
 #                       % (videodir, dest_file))
-      commands.getoutput('ffmpegthumbnailer -s 0 -i "%s/%s" -o "%s/%s"'
-                        % (videodir, dest_file, videodir, dest_file))
-    except:
-      pass
+#      commands.getoutput('ffmpegthumbnailer -s 0 -i "%s/%s" -o "%s/%s"'
+#                        % (videodir, dest_file, videodir, dest_file))
+#    except:
+#      pass
 
     self.SetImported()
     out.write('Finished\n\n')
