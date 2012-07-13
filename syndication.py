@@ -106,8 +106,18 @@ def Sync(db, xmlfile, title, out=sys.stdout):
   xml = ''.join(lines)
   parser = feedparser.parse(xml)
 
+
+
   # Find the media:content entries
   for entry in parser.entries:
+    # detect feedparser version
+    try:                                       # feedparser >= 5.1.1 
+      date = entry.published                  # publication date of entry 
+      date_parsed = entry.published_parsed     # date parsed 
+    except AttributeError:                      # older feedparser
+      date = entry.date                       # feedparser < 5.1.1
+      date_parsed = entry.date_parsed
+
     videos = {}
     try:
       description = utility.massageDescription(entry.description)
@@ -167,8 +177,8 @@ def Sync(db, xmlfile, title, out=sys.stdout):
                  title,
                  subtitle,
                  description,
-                 entry.date,
-                 entry.date_parsed,
+                 date,
+                 date_parsed,
                  out=out)
         done = True
 
@@ -186,8 +196,8 @@ def Sync(db, xmlfile, title, out=sys.stdout):
                title,
                subtitle,
                description,
-               entry.date,
-               entry.date_parsed,
+               date,
+               date_parsed,
                out=out)
         done = True
       
@@ -202,8 +212,8 @@ def Sync(db, xmlfile, title, out=sys.stdout):
                title,
                subtitle,
                description,
-               entry.date,
-               entry.date_parsed,
+               date,
+               date_parsed,
                out=out)
         done = True
       
@@ -221,8 +231,8 @@ def Sync(db, xmlfile, title, out=sys.stdout):
                title,
                subtitle,
                description,
-               entry.date,
-               entry.date_parsed,
+               date,
+               date_parsed,
                out=out)
       done = True
 
@@ -236,8 +246,8 @@ def Sync(db, xmlfile, title, out=sys.stdout):
                 title,
                 subtitle,
                 description,
-                entry.date,
-                entry.date_parsed,
+                date,
+                date_parsed,
                 out=out)
         done = True
       if not complained_about_swf:
@@ -258,8 +268,8 @@ def Sync(db, xmlfile, title, out=sys.stdout):
                title,
                subtitle,
                description,
-               entry.date,
-               entry.date_parsed,
+               date,
+               date_parsed,
                out=out)
       done = True
 
