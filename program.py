@@ -543,7 +543,7 @@ class MythNetTvProgram:
     except:
       pass
 
-    videodir = utility.GetVideoDir(self.db)
+    videodir = utility.GetVideoDir()
     vid = video.MythNetTvVideo(self.db, filename)
 
     # Try to use the publish time of the RSS entry as the start time...

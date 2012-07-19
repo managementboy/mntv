@@ -57,35 +57,22 @@ _VIDEODIRPATH = [('storagegroup', 'groupname="MythNetTV"', 'dirname'),
                  ('storagegroup', 'groupname="Default"', 'dirname'),
                  ('settings', 'value="RecordFilePrefix"', 'data')]
 
-def GetVideoDir(db):
+def GetVideoDir():
   """GetVideoDir -- return the directory to store video in"""
   # Video directory lookup changes for the introduction of storage groups
   # in MythTV 0.21
   # TODO(mikal): I wonder if this works with 0.21 properly? I should test.
-  videodir = None
-
-  for (table, where, column) in _VIDEODIRPATH:
-    if db.TableExists(table):
-      try:
-        videodir = db.GetOneRow('select * from %s where '
-                                '%s and hostname = "%s";'
-                                %(table, where,
-                                  socket.gethostname()))[column]
-      except:
-        pass
-
-    if videodir:
-      break
+  videodir = getBiggestSG()
 
   # Check we ended up with a video directory
   if videodir == None:
-    raise FilenameException(db, 'Could not determine the video '
+    raise FilenameException('Could not determine the video '
                             'directory for this machine. Please report '
                             'this to mythnettv@stillhq.com')
   
   # Check that it exists as well
   if not os.path.exists(videodir):
-    raise FilenameException(db, 'MythTV is misconfigured. The video '
+    raise FilenameException('MythTV is misconfigured. The video '
                             'directory "%s" does not exist. Please create '
                             'it, and then rerun MythNetTV.'
                             % videodir)
@@ -93,33 +80,14 @@ def GetVideoDir(db):
   return videodir
 
 
-def ExplainVideoDir(db):
+def ExplainVideoDir():
   """ExplainVideoDir -- return the directory to store video in"""
 
-  videodir = None
+  videodir = getBiggestSG()
 
-  for (table, where, column) in _VIDEODIRPATH:
-    if db.TableExists(table):
-      try:
-        print 'Checking %s for an entry where %s' %(table, where)
-        for row in db.GetRows('select * from %s where %s;'
-                              %(table, where)):
-          print 'Found %s for %s' %(row[column], row['hostname'])
-          if row['hostname'] == socket.gethostname():
-            videodir = row[column]
-            print 'Using this value'
-                         
-      except Exception, e:
-        print '  DB error: %s' % e
-
-    else:
-      print 'Skipped using table %s as it doesn\'t exist' % table
-
-    if videodir:
-      print 'Will use: %s' % videodir
-      print
-      print '** All entries below here are informational only **'
-      print
+  if videodir:
+    print 'Will use: %s\n\n' % videodir
+    print '** All entries below here are informational only **\n\n'
 
   # Check we ended up with a video directory
   if videodir == None:
@@ -303,3 +271,22 @@ def hashtitlesubtitle(title,subtitle):
   if subtitle:
     m.update(subtitle)
   return m.hexdigest()
+
+import MythTV
+def getBiggestSG():
+  '''
+  Returns the path of the recording Storage Group with most space available
+  '''
+  #get all free space data from backend for each SG
+  free = MythTV.MythBE().getFreeSpace()
+  #get list of SG for recordings
+  SG = MythTV.MythBE().getSGList(socket.gethostname(), 'Default', '')
+  mylist = {}
+  #itterate through all FreeSpace items
+  for i in free:
+    #if path equals recordings SG
+    if i.path in SG:
+      #store free space data and path
+      mylist[i.path]=i.freespace
+  #return only a string of the largest SG
+  return str(max(mylist.iterkeys(), key=lambda k: mylist[k]))

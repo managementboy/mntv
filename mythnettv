@@ -246,6 +246,7 @@ def main(argv, out=sys.stdout):
 
   # Make sure the data directory exists
   datadir = db.GetSettingWithDefault('datadir', FLAGS.datadir)
+  #datadir = utility.getBiggestSG(host)
   if not os.path.exists(datadir):
     out.write('You need to create the configured data directory at "%s"\n'
               % datadir)
@@ -687,7 +688,7 @@ you want to do this?\n\n""")
 
   elif argv[1] == 'videodir':
     try:
-      print 'Video directory is: %s' % utility.GetVideoDir(db)
+      print 'Video directory is: %s' % utility.GetVideoDir()
     except utility.FilenameException:
       print 'No video directory found! Use explainvideodir to debug'
 
