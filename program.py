@@ -37,7 +37,7 @@ from plugins import streamingsites
 
 # import MythTV bindings... we could test if you have them, but if you don't, why do you need this script?
 from MythTV import OldRecorded, Recorded, RecordedProgram, Record, Channel, \
-                   MythDB, Video, MythVideo, MythBE, MythError, MythLog
+                   MythDB, Video, MythVideo, MythBE, MythError, MythLog, MythXML
 
 from stat import *
 
@@ -802,21 +802,14 @@ class MythNetTvProgram:
     # add recordedprogram information using the MythTV python bindings 
     RecordedProgram().create(tmp_recorded)
 
-    # Build the seektable
-#    out.write('and lastly rebuilding the seek table... ')
-#    commands.getoutput('mythtranscode -b -q --loglevel err -i "%s/%s"'
-#                       % (videodir, dest_file))
-
-    # generate preview, just so it doesn't need to be done later
-#   time.sleep(5)
-#    try:
-#      commands.getoutput('mythpreviewgen --loglevel err --infile "%s/%s"'
-#                       % (videodir, dest_file))
-#      commands.getoutput('ffmpegthumbnailer -s 0 -i "%s/%s" -o "%s/%s"'
-#                        % (videodir, dest_file, videodir, dest_file))
-#    except:
-#      pass
-
+    # use python bindings to generate a preview PNG
+    try:
+      out.write('Generate preview, just so it does not need to be done later\n')
+      MythXML.getPreviewImage(chanid,start)
+    except:
+      out.write('Could not generate preview image. Will be done by the frontend later.\n')
+      pass
+    
     self.SetImported()
     out.write('Finished\n\n')
 
