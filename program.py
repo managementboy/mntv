@@ -637,7 +637,7 @@ class MythNetTvProgram:
     # Determine the Videoproperties
     videoheight = vid.height()
     videowidth = vid.width()
-    videoaspect = videowidth / videoheight
+    videoaspect = float(videowidth) / float(videoheight)
     videoprop = ''
     if videoheight >= 1080:
       videoprop = '1080'
