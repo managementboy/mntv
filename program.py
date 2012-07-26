@@ -36,11 +36,12 @@ from plugins import bittorrent
 from plugins import streamingsites
 
 # import MythTV bindings... we could test if you have them, but if you don't, why do you need this script?
-from MythTV import OldRecorded, Recorded, RecordedProgram, Record, Channel, \
+from MythTV import OldRecorded, Recorded, RecordedProgram, Record, Channel, System, \
                    MythDB, Video, MythVideo, MythBE, MythError, MythLog, MythXML
 
 from stat import *
 
+from plugins import video_inspector
 
 FLAGS = gflags.FLAGS
 gflags.DEFINE_boolean('commflag', True,
@@ -544,7 +545,8 @@ class MythNetTvProgram:
       pass
 
     videodir = utility.GetVideoDir()
-    vid = video.MythNetTvVideo(self.db, filename)
+    #vid = video.MythNetTvVideo(self.db, filename)
+    vid = video_inspector.VideoInspector(filename)    
 
     # Try to use the publish time of the RSS entry as the start time...
     try:
@@ -569,7 +571,7 @@ class MythNetTvProgram:
     duration = datetime.timedelta(seconds = 60)
   
     try:
-      duration = datetime.timedelta(seconds = vid.Length())
+      duration = datetime.timedelta(seconds = vid.duration())
     except video.LengthException, e:
       out.write('Could not determine the real length of the video.\n'
                 'Instead we will just pretend its only one minute long.\n\n'
@@ -625,13 +627,26 @@ class MythNetTvProgram:
       pass
 
     # Determine the audioproperties of the video
-    audioprop = vid.Audioprop()
+    audioprop = vid.audio_channels_string().upper()
 
     # Determine the subtitles of the video
-    subtitletypes = vid.Subtitletypes()
+    subtitletypes = ''
+    if vid.subtitle_stream():
+      subtitletypes = 'NORMAL'
 
     # Determine the Videoproperties
-    videoprop = vid.Videoprop()
+    videoheight = vid.height()
+    videowidth = vid.width()
+    videoaspect = videowidth / videoheight
+    videoprop = ''
+    if videoheight >= 1080:
+      videoprop = '1080'
+    elif videoheight >= 720:
+      videoprop = '720'
+    elif videowidth >= 1280:
+      videoprop = 'HDTV'
+    elif videoaspect >= 1.4:
+      videoprop = 'WIDESCREEN'
 
     # Archive the original version of the video
     archiverow = self.db.GetOneRow('select * from mythnettv_archive '
@@ -725,37 +740,35 @@ class MythNetTvProgram:
     tmp_recorded[u'hostname'] = socket.gethostname()
 
     # add aspect to markup table
-    if vid.values['ID_VIDEO_WIDTH']:
-      aspect = float(vid.values['ID_VIDEO_WIDTH'])/float(vid.values['ID_VIDEO_HEIGHT'])
-      if FLAGS.verbose:
-        out.write('Storing aspect ratio: %s\n' % aspect)
-      if aspect < 1.41:
-        aspecttype = 11
-      elif aspect < 1.81:
-        aspecttype = 12
-      elif aspect < 2.31:
-        aspecttype = 13 
-      try:
-        self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
+    if FLAGS.verbose:
+      out.write('Storing aspect ratio: %s\n' % aspect)
+    if videoaspect < 1.41:
+      aspecttype = 11
+    elif videoaspect < 1.81:
+      aspecttype = 12
+    elif videoaspect < 2.31:
+      aspecttype = 13 
+    try:
+      self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
                          'values (%s, %s, 1, %s, NULL)'
                            %(chanid, self.db.FormatSqlValue('', start), aspecttype))
-      except:
-        out.write('Error storing aspect ratio: %s\n' % aspect)
-        pass
+    except:
+      out.write('Error storing aspect ratio: %s\n' % aspect)
+      pass
 
     # if the height and/or width of the recording is known, store it in the markuptable
-    if vid.values['ID_VIDEO_HEIGHT']:
+    if videoheight:
       if FLAGS.verbose:
-	out.write('Storing height: %s\n' % vid.values['ID_VIDEO_HEIGHT'])
+	out.write('Storing height: %s\n' % videoheight)
       self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
                          'values (%s, %s, 12, 31, %s)'
-                         %(chanid, self.db.FormatSqlValue('', start), vid.values['ID_VIDEO_HEIGHT']))
-    if vid.values['ID_VIDEO_WIDTH']:
+                         %(chanid, self.db.FormatSqlValue('', start), videoheight))
+    if videowidth:
       if FLAGS.verbose:
-	out.write('Storing width: %s\n' % vid.values['ID_VIDEO_WIDTH'])
+	out.write('Storing width: %s\n' % videowidth)
       self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
                          'values (%s, %s, 12, 30, %s)'
-                         %(chanid, self.db.FormatSqlValue('', start), vid.values['ID_VIDEO_WIDTH']))
+                         %(chanid, self.db.FormatSqlValue('', start), videowidth))
 
     # If there is a category set for this subscription, then set that as well
     row = self.db.GetOneRow('select * from mythnettv_category where '
@@ -805,7 +818,8 @@ class MythNetTvProgram:
     # use python bindings to generate a preview PNG
     try:
       out.write('Generate preview, just so it does not need to be done later\n')
-      MythXML.getPreviewImage(chanid,start)
+      task = System(path='mythpreviewgen')
+      task.command('--chanid "%s"' % chanid, '--starttime "%s"' % start)
     except:
       out.write('Could not generate preview image. Will be done by the frontend later.\n')
       pass

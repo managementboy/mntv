@@ -246,7 +246,6 @@ def main(argv, out=sys.stdout):
 
   # Make sure the data directory exists
   datadir = db.GetSettingWithDefault('datadir', FLAGS.datadir)
-  #datadir = utility.getBiggestSG(host)
   if not os.path.exists(datadir):
     out.write('You need to create the configured data directory at "%s"\n'
               % datadir)

@@ -101,7 +101,7 @@ def Download(torrent_filename, tmpname, info_func,
   stalecounter = 0
   try:
     start_time = datetime.datetime.now()
-    while not download_ok or not exit:
+    while (not download_ok) or (not exit):
       time.sleep(10) # don't hit transmission too much
       oldprogress = tc.info(tkey)[tkey].progress
       if tc.info(tkey)[tkey].progress == 100:
@@ -116,9 +116,9 @@ def Download(torrent_filename, tmpname, info_func,
         if wait_time.seconds > 600:
           out.write('Waited %s for download to start. Giving up.\n'
                     % wait_time)
-          exit = True
+          break
       # print the percent of download done if download started
-      if tc.info(tkey)[tkey].progress >= 0:
+      if tc.info(tkey)[tkey].progress > 0:
         out.write("\r                                                                          \r") # clean up
         out.write(' %.2f%% downloaded' % tc.info(tkey)[tkey].progress) # use the formating provided by transmissionrpc
         out.write(' \t%.2f %s left' % format_size(tc.info(tkey)[tkey].leftUntilDone))
