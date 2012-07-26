@@ -741,7 +741,7 @@ class MythNetTvProgram:
 
     # add aspect to markup table
     if FLAGS.verbose:
-      out.write('Storing aspect ratio: %s\n' % aspect)
+      out.write('Storing aspect ratio: %s\n' % videoaspect)
     if videoaspect < 1.41:
       aspecttype = 11
     elif videoaspect < 1.81:
@@ -753,7 +753,7 @@ class MythNetTvProgram:
                          'values (%s, %s, 1, %s, NULL)'
                            %(chanid, self.db.FormatSqlValue('', start), aspecttype))
     except:
-      out.write('Error storing aspect ratio: %s\n' % aspect)
+      out.write('Error storing aspect ratio: %s\n' % videoaspect)
       pass
 
     # if the height and/or width of the recording is known, store it in the markuptable
