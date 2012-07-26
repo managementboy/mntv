@@ -185,8 +185,7 @@ class VideoInspector(object):
         if not self._valid:
             return
         return re.search(
-            "Stream\s*(.*?)[,|:|\(|\[].*?\s*Audio:\s*(.*?),\s*([0-9\.]*) "\
-            "(\w*),\s*([a-zA-Z:]*)",
+            "Stream\s*(.*?)[,|:|\(|\[].*?\s*Audio:\s*(.*?),\s*([0-9\.]*) (\w*),\s*(.*?)[,|:|\(|\[]",
             self.audio_stream()
         )
 

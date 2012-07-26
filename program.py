@@ -628,6 +628,8 @@ class MythNetTvProgram:
 
     # Determine the audioproperties of the video
     audioprop = vid.audio_channels_string().upper()
+    if audioprop == '5.1':
+      audioprop = 'SURROUND'
 
     # Determine the subtitles of the video
     subtitletypes = ''
