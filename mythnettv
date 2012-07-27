@@ -29,7 +29,6 @@ import proxyhandler
 import syndication
 import mythnettvcore
 import utility
-import video
 
 __author__ = 'Michael Still (mikal@stillhq.com), Elkin Fricke (managementboy@gmail.com)'
 __version__ = 'Release 8'
@@ -144,11 +143,12 @@ def Usage(out):
 (subscription management)
   subscribe <url> <title> <inetref*> <chanid*>
                     : subscribe to a URL, and specify the show 
-                      title, inetref, chanid (*optional)
+                      title, inetref, chanid (*optional, but
+                      nice to have)
   list              : list subscriptions
   unsubscribe <url> <title>
-		    : unsubscribe from a feed, and remove feed
-		      programs from TODO list
+                    : unsubscribe from a feed, and remove feed
+                      programs from TODO list
   update            : add new programs from subscribed URLs to the
                       TODO list
   update <title>    : as above, but just for this program
@@ -214,9 +214,19 @@ def Usage(out):
                       Current subtitle must contain the season
                       and episode in a format like S##E##
                       or ##x##
-  updatemeta <filename>  : guess the subtitle and video
-                      type of a recording by analyzing it with                      
-                      mplayer and update the recorded EPG data
+  sepfix <title>    : fix the season and episode data by trying
+                      to guess it from subtitle.
+
+(other)
+  titlesubtitlefix <subtitle> <title>
+                    : interactively remove a part of the subtitle
+                      and replace the title with it. If you have
+                      an rss feed that contains shows that contain
+                      the actual title in the subtitle, this
+                      tool will help you change those. Applies
+                      to all titles where the subtitle contains
+                      the string you provide. Updates metadata if
+                      found.
 """)
 
   out.write('\n\nAdditionally, you can use these global flags:%s\n' % FLAGS)

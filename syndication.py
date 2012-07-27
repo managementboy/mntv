@@ -15,7 +15,6 @@ import gflags
 import mythnettvcore
 import program
 import utility
-import video
 
 
 # Define command line flags

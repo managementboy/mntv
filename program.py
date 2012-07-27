@@ -24,7 +24,6 @@ import gflags
 import mythnettvcore
 import proxyhandler
 import utility
-import video
 import series
 import tvrage.api
 
@@ -41,11 +40,10 @@ from MythTV import OldRecorded, Recorded, RecordedProgram, Record, Channel, Syst
 
 from stat import *
 
+# import a modified version from ffmpeg wrapper
 from plugins import video_inspector
 
 FLAGS = gflags.FLAGS
-gflags.DEFINE_boolean('commflag', True,
-                      'Run the mythcommflag command on new videos')
 gflags.DEFINE_boolean('force', False,
                       'Force downloads to run, even if they failed recently')
 
@@ -545,7 +543,6 @@ class MythNetTvProgram:
       pass
 
     videodir = utility.GetVideoDir()
-    #vid = video.MythNetTvVideo(self.db, filename)
     vid = video_inspector.VideoInspector(filename)    
 
     # Try to use the publish time of the RSS entry as the start time...
@@ -572,11 +569,10 @@ class MythNetTvProgram:
   
     try:
       duration = datetime.timedelta(seconds = vid.duration())
-    except video.LengthException, e:
-      out.write('Could not determine the real length of the video.\n'
-                'Instead we will just pretend its only one minute long.\n\n'
-                '%s\n'
-                % e)
+    except:
+      #Could not determine the real length of the video.
+      #Instead we will just pretend its only one minute long.
+      pass
 
     finish = start + duration
     realseason = 0
@@ -670,13 +666,6 @@ class MythNetTvProgram:
       else:
         out.write('Archive destination already exists\n')
 
-    # Transcode file to a better format if needed. transcoded is the filename
-    # without the data directory portion
-    #if vid.NeedsTranscode(out=out):
-    #  transcoded_filename = vid.Transcode(datadir, out=out)
-    #  transcoded = '%s/%s' %(datadir, transcoded_filename)
-    #  os.remove(filename)
-    #else:
     transcoded_filename = filename.split('/')[-1]
 
     out.write('Importing video %s...\n' % self.persistant['guid'])

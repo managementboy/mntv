@@ -15,7 +15,7 @@ import database
 import program
 import proxyhandler
 import syndication
-import video
+
 
 gflags.DEFINE_boolean('oldestfirst', False,
                       'Download the oldest programs first')
