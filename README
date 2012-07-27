@@ -41,10 +41,6 @@ You also need the Python MySQL module:
 
 $ sudo apt-get install python-mysqldb
 
-Finally, you need mplayer and mecoder:
-
-$ sudo apt-get install mplayer mencoder
-
 Using MythNetTv is simple. If you want MythNetTv to manage your
 subscriptions, then do something like:
 
