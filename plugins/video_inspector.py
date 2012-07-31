@@ -1,6 +1,7 @@
 import os
 import re
 import commands
+import datetime
 
 from errors import CommandError
 from errors import UnknownFormat
@@ -96,10 +97,9 @@ class VideoInspector(object):
     def duration(self):
         if not self._valid:
             return
-        units = self.raw_duration().split(":")
-        return (int(units[0]) * 60 * 60 * 1000) + \
-            (int(units[1]) * 60 * 1000) + \
-            int(float(units[2]) * 1000)
+        units = self.raw_duration()
+        duration = datetime.datetime.strptime(units,'%H:%M:%S.%f')
+        return duration.second+duration.minute*60+duration.hour*3600
 
     def _bitrate_match(self):
         return re.search("bitrate: ([0-9\.]+)\s*(.*)\s+", self._metadata)

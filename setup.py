@@ -23,12 +23,13 @@ import subprocess, glob, os.path
 
 setup(
     name="mythnettv",
-    author="Michael Still",
-    author_email="mikal@stillhq.com",
-    url="http://www.stillhq.com/mythtv/mythnettv/",
+    author="Elkin Fricke",
+    author_email="managementboy@gmail.com",
+    url="http://github.com/managementboy/mntv",
     license="gpl",
     description="Plugin to download RSS video feeds for MythTV",
     data_files=[("share/mythnettv", glob.glob("*.py")),
+		("share/mythnettv/plugins", glob.glob("plugins/*.py")),
 		("share/mythnettv", glob.glob("README*")),
 		("share/mythnettv", glob.glob("mythnettv*")),
 		("share/mythnettv", glob.glob("COPYING"))],
