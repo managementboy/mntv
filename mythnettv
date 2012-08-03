@@ -141,10 +141,10 @@ def Usage(out):
                       subtitle
 
 (subscription management)
-  subscribe <url> <title> <inetref*> <chanid*>
+  subscribe <url> <title> <inetref*> <chanid*> <playbackgroup*>
                     : subscribe to a URL, and specify the show 
-                      title, inetref, chanid (*optional, but
-                      nice to have)
+                      title, inetref, chanid, playbackgroup
+                      (*optional, but nice to have)
   list              : list subscriptions
   unsubscribe <url> <title>
                     : unsubscribe from a feed, and remove feed
@@ -434,7 +434,7 @@ def main(argv, out=sys.stdout):
   elif argv[1] == 'subscribe':
     # Subscribe to an RSS feed
     if len(argv) > 4:
-      mythnettvcore.Subscribe(argv[2], argv[3], argv[4], argv[5])
+      mythnettvcore.Subscribe(argv[2], argv[3], argv[4], argv[5], argv[6])
     else:
       mythnettvcore.Subscribe(argv[2], argv[3], None, None)
     out.write('Subscribed to %s\n' % argv[3])

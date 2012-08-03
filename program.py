@@ -795,6 +795,12 @@ class MythNetTvProgram:
       if FLAGS.verbose:
 	out.write('Setting the inetref to %s\n' % row['inetref'])
       tmp_recorded[u'inetref'] = row['inetref']
+    
+    # stet the playgroup if available
+    if row:
+      if FLAGS.verbose:
+	out.write('Setting the playgroup to %s\n' % row['playgroup'])
+      tmp_recorded[u'playgroup'] = row['playgroup']
       
     tmp_recorded[u'audioprop'] = audioprop
     tmp_recorded[u'subtitletypes'] = subtitletypes

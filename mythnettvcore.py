@@ -136,7 +136,7 @@ def DownloadAndImport(db, guid, out=sys.stdout):
   return False
 
 
-def Subscribe(url, title, inetref, chanid):
+def Subscribe(url, title, inetref, chanid, playgroup):
   """Subscribe -- subscribe to a new RSS or ATOM feed"""
   
   db = database.MythNetTvDatabase()
@@ -144,7 +144,8 @@ def Subscribe(url, title, inetref, chanid):
                                                     'title':title,
                                                     'inactive':None,
                                                     'inetref':inetref,
-                                                    'chanid':chanid})
+                                                    'chanid':chanid,
+                                                    'playgroup':playgroup})
   
 def Update(out, title=None):
   """Update -- download updates for all feeds"""
