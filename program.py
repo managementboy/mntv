@@ -83,6 +83,20 @@ def addChannel(icon, channel_id, channel_num, callsign, channelname):
 
   return True
 
+def getAspectRatio(videoheigth, videowidth)
+    """getAspectRatio -- return MythTV compatible aspect ratio
+    """
+    videoaspect = float(videowidth) / float(videoheight)
+    if videoheight >= 1080:
+      return '1080'
+    elif videoheight >= 720:
+      return '720'
+    elif videowidth >= 1280:
+      return 'HDTV'
+    elif videoaspect >= 1.4:
+      return 'WIDESCREEN'
+    else:
+      return ''
 
 def SafeForFilename(s):
   """SafeForFilename -- convert s into something which can be used for a 
@@ -631,20 +645,9 @@ class MythNetTvProgram:
     subtitletypes = ''
     if vid.subtitle_stream():
       subtitletypes = 'NORMAL'
-
-    # Determine the Videoproperties
-    videoheight = vid.height()
-    videowidth = vid.width()
-    videoaspect = float(videowidth) / float(videoheight)
+    
     videoprop = ''
-    if videoheight >= 1080:
-      videoprop = '1080'
-    elif videoheight >= 720:
-      videoprop = '720'
-    elif videowidth >= 1280:
-      videoprop = 'HDTV'
-    elif videoaspect >= 1.4:
-      videoprop = 'WIDESCREEN'
+    videoprop = getAspectRatio(vid.height(), vid.width())
 
     # Archive the original version of the video
     archiverow = self.db.GetOneRow('select * from mythnettv_archive '
