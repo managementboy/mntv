@@ -98,13 +98,12 @@ def getAspectRatio(videoheight, videowidth):
     else:
       return ''
 
-def storeAspect(videoaspect):
+def storeAspect(self, videoheight, videowidth):
     """storeAspect -- writes aspect ratio to MythTV database
     as the python bindings don't seem to have a solution to this
     and MythWeb needs it
     """
-    if FLAGS.verbose:
-      out.write('Storing aspect ratio: %s\n' % videoaspect)
+    videoaspect = float(videowidth) / float(videoheight)
     if videoaspect < 1.41:
       aspecttype = 11
     elif videoaspect < 1.81:
@@ -116,7 +115,6 @@ def storeAspect(videoaspect):
                          'values (%s, %s, 1, %s, NULL)'
                            %(chanid, self.db.FormatSqlValue('', start), aspecttype))
     except:
-      out.write('Error storing aspect ratio: %s\n' % videoaspect)
       pass
 
 def SafeForFilename(s):
@@ -754,7 +752,7 @@ class MythNetTvProgram:
     tmp_recorded[u'lastmodified'] = datetime.datetime.now()
     tmp_recorded[u'hostname'] = socket.gethostname()
 
-    storeAspect(videoaspect)
+    storeAspect(self, vid.height(), vid.width())
 
     # if the height and/or width of the recording is known, store it in the markuptable
     if videoheight:
@@ -809,7 +807,10 @@ class MythNetTvProgram:
     if row:
       if FLAGS.verbose:
 	out.write('Setting the playgroup to %s\n' % row['playgroup'])
-      tmp_recorded[u'playgroup'] = row['playgroup']
+      try:
+        tmp_recorded[u'playgroup'] = row['playgroup']
+      except:
+        pass
       
     tmp_recorded[u'audioprop'] = audioprop
     tmp_recorded[u'subtitletypes'] = subtitletypes
