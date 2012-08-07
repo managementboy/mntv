@@ -755,18 +755,18 @@ class MythNetTvProgram:
     storeAspect(self, vid.height(), vid.width())
 
     # if the height and/or width of the recording is known, store it in the markuptable
-    if videoheight:
+    if vid.height():
       if FLAGS.verbose:
-	out.write('Storing height: %s\n' % videoheight)
+	out.write('Storing height: %s\n' % vid.height())
       self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
                          'values (%s, %s, 12, 31, %s)'
-                         %(chanid, self.db.FormatSqlValue('', start), videoheight))
-    if videowidth:
+                         %(chanid, self.db.FormatSqlValue('', start), vid.height()))
+    if vid.width():
       if FLAGS.verbose:
-	out.write('Storing width: %s\n' % videowidth)
+	out.write('Storing width: %s\n' % vid.width())
       self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
                          'values (%s, %s, 12, 30, %s)'
-                         %(chanid, self.db.FormatSqlValue('', start), videowidth))
+                         %(chanid, self.db.FormatSqlValue('', start), vid.width()))
 
     # If there is a category set for this subscription, then set that as well
     row = self.db.GetOneRow('select * from mythnettv_category where '
