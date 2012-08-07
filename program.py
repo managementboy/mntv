@@ -98,6 +98,27 @@ def getAspectRatio(videoheigth, videowidth):
     else:
       return ''
 
+def storeAspect(videoaspect)
+    """storeAspect -- writes aspect ratio to MythTV database
+    as the python bindings don't seem to have a solution to this
+    and MythWeb needs it
+    """
+    if FLAGS.verbose:
+      out.write('Storing aspect ratio: %s\n' % videoaspect)
+    if videoaspect < 1.41:
+      aspecttype = 11
+    elif videoaspect < 1.81:
+      aspecttype = 12
+    elif videoaspect < 2.31:
+      aspecttype = 13 
+    try:
+      self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
+                         'values (%s, %s, 1, %s, NULL)'
+                           %(chanid, self.db.FormatSqlValue('', start), aspecttype))
+    except:
+      out.write('Error storing aspect ratio: %s\n' % videoaspect)
+      pass
+
 def SafeForFilename(s):
   """SafeForFilename -- convert s into something which can be used for a 
     filename.
@@ -733,22 +754,7 @@ class MythNetTvProgram:
     tmp_recorded[u'lastmodified'] = datetime.datetime.now()
     tmp_recorded[u'hostname'] = socket.gethostname()
 
-    # add aspect to markup table
-    if FLAGS.verbose:
-      out.write('Storing aspect ratio: %s\n' % videoaspect)
-    if videoaspect < 1.41:
-      aspecttype = 11
-    elif videoaspect < 1.81:
-      aspecttype = 12
-    elif videoaspect < 2.31:
-      aspecttype = 13 
-    try:
-      self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
-                         'values (%s, %s, 1, %s, NULL)'
-                           %(chanid, self.db.FormatSqlValue('', start), aspecttype))
-    except:
-      out.write('Error storing aspect ratio: %s\n' % videoaspect)
-      pass
+    storeAspect(videoaspect)
 
     # if the height and/or width of the recording is known, store it in the markuptable
     if videoheight:
