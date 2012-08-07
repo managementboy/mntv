@@ -98,7 +98,7 @@ def getAspectRatio(videoheigth, videowidth):
     else:
       return ''
 
-def storeAspect(videoaspect)
+def storeAspect(videoaspect):
     """storeAspect -- writes aspect ratio to MythTV database
     as the python bindings don't seem to have a solution to this
     and MythWeb needs it
