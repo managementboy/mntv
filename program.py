@@ -83,7 +83,7 @@ def addChannel(icon, channel_id, channel_num, callsign, channelname):
 
   return True
 
-def getAspectRatio(videoheigth, videowidth):
+def getAspectRatio(videoheight, videowidth):
     """getAspectRatio -- return MythTV compatible aspect ratio
     """
     videoaspect = float(videowidth) / float(videoheight)
