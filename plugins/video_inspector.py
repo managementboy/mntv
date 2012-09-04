@@ -16,7 +16,6 @@ class VideoInspector(object):
     def __init__(self, video_source, ffmpeg_bin="mythffmpeg"):
         if not os.path.exists(video_source):
             raise InputFileDoesNotExist()
-
         self.filename = os.path.basename(video_source)
         self.path = os.path.dirname(video_source)
         self.full_filename = video_source

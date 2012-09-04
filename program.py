@@ -98,10 +98,10 @@ def getAspectRatio(videoheight, videowidth):
     else:
       return ''
 
-def storeAspect(self, videoheight, videowidth):
+def storeAspect(self, videoheight, videowidth, chanid, start, out=sys.stdout):
     """storeAspect -- writes aspect ratio to MythTV database
     as the python bindings don't seem to have a solution to this
-    and MythWeb needs it
+    and MythWeb needs it. 
     """
     videoaspect = float(videowidth) / float(videoheight)
     if videoaspect < 1.41:
@@ -110,6 +110,7 @@ def storeAspect(self, videoheight, videowidth):
       aspecttype = 12
     elif videoaspect < 2.31:
       aspecttype = 13 
+    out.write('Aspect ratio set to %s\n' %(videoaspect))
     try:
       self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
                          'values (%s, %s, 1, %s, NULL)'
@@ -122,7 +123,7 @@ def SafeForFilename(s):
     filename.
   """
 
-  for c in [' ', '(', ')', '{', '}', '[', ']', ':', '\'', '"']:
+  for c in [' ', '(', ')', '{', '}', '[', ']', ':', '\'', '"', '!']:
     s = s.replace(c, '_')
   return s
 
@@ -492,7 +493,7 @@ class MythNetTvProgram:
       total = self.DownloadHTTP(filename, force_proxy=force_proxy,
                                 force_budget=force_budget)
     else:
-      total = self.DownloadMPlayer(filename)
+      total = filename
 
     if total == 0:
       return False
@@ -576,7 +577,11 @@ class MythNetTvProgram:
       pass
 
     videodir = utility.GetVideoDir()
-    vid = video_inspector.VideoInspector(filename)    
+    try:
+      vid = video_inspector.VideoInspector(filename)    
+    except:
+      out.write("No video metadata could be detected")
+      pass
 
     # Try to use the publish time of the RSS entry as the start time...
     try:
@@ -656,17 +661,25 @@ class MythNetTvProgram:
       pass
 
     # Determine the audioproperties of the video
-    audioprop = vid.audio_channels_string().upper()
-    if audioprop == '5.1':
-      audioprop = 'SURROUND'
-
+    try:
+      audioprop = vid.audio_channels_string().upper()
+      if audioprop == '5.1':
+        audioprop = 'SURROUND'
+    except:
+      pass
     # Determine the subtitles of the video
     subtitletypes = ''
-    if vid.subtitle_stream():
-      subtitletypes = 'NORMAL'
+    try:
+      if vid.subtitle_stream():
+        subtitletypes = 'NORMAL'
+    except:
+      pass
     
     videoprop = ''
-    videoprop = getAspectRatio(vid.height(), vid.width())
+    try:
+      videoprop = getAspectRatio(vid.height(), vid.width())
+    except:
+      pass
 
     # Archive the original version of the video
     archiverow = self.db.GetOneRow('select * from mythnettv_archive '
@@ -752,7 +765,7 @@ class MythNetTvProgram:
     tmp_recorded[u'lastmodified'] = datetime.datetime.now()
     tmp_recorded[u'hostname'] = socket.gethostname()
 
-    storeAspect(self, vid.height(), vid.width())
+    storeAspect(self, vid.height(), vid.width(), chanid, start)
 
     # if the height and/or width of the recording is known, store it in the markuptable
     if vid.height():

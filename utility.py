@@ -290,3 +290,4 @@ def getBiggestSG():
       mylist[i.path]=i.freespace
   #return only a string of the largest SG
   return str(max(mylist.iterkeys(), key=lambda k: mylist[k]))
+

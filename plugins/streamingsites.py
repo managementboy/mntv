@@ -7,7 +7,7 @@ from videodownloader import providers
 import sys
 import os
 import urllib2
-
+import program
 
 def Download(site, identifier, datadir):
   """Download a video from common video streaming sites
@@ -23,7 +23,7 @@ def Download(site, identifier, datadir):
   video = provider(identifier)
   download_ok = False
   print 'Downloading "%s"...\n' % video.title
-  video.filename = '%s/%s' %(datadir, video.filename)
+  video.filename = '%s/%s' %(datadir, program.SafeForFilename(video.filename))
 
   try:
     video.run()
@@ -36,5 +36,5 @@ def Download(site, identifier, datadir):
   if not download_ok:
     return 0
 
-  print 'New destination will be %s\n' % video.full_filename  
+  print 'New destination will be %s\n' % video.full_filename
   return os.path.basename(video.full_filename)
