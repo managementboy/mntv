@@ -765,7 +765,11 @@ class MythNetTvProgram:
     tmp_recorded[u'lastmodified'] = datetime.datetime.now()
     tmp_recorded[u'hostname'] = socket.gethostname()
 
-    storeAspect(self, vid.height(), vid.width(), chanid, start)
+    try:
+      storeAspect(self, vid.height(), vid.width(), chanid, start)
+    except:
+      out.write('Could not write the aspect ratio to database')
+      pass
 
     # if the height and/or width of the recording is known, store it in the markuptable
     if vid.height():
