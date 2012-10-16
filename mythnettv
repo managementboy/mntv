@@ -751,6 +751,10 @@ you want to do this?\n\n""")
     else:
       out.write('Sorry, no shows with the title %s available\n' % argv[2])
 
+  elif argv[1] == 'aspectfix':
+    prog = program.MythNetTvProgram(db)
+    prog.allaspects(argv[2])
+
   elif argv[1] == 'rescue':
     prog = program.MythNetTvProgram(db)
     for row in db.GetRows('SELECT title, subtitle, filesize, starttime, basename FROM recorded WHERE title LIKE "%s";' % (argv[2])):

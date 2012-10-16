@@ -75,7 +75,7 @@ def addChannel(icon, channel_id, channel_num, callsign, channelname):
     data['icon'] = icon
   data['callsign'] = callsign
   data['name'] = channelname
-  data['last_record'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+  data['last_record'] = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
   try:
     Channel().create(data)
   except MythError, e:
@@ -98,25 +98,18 @@ def getAspectRatio(videoheight, videowidth):
     else:
       return ''
 
-def storeAspect(self, videoheight, videowidth, chanid, start, out=sys.stdout):
+def aspectType(self, videoheight, videowidth, chanid, start, out=sys.stdout):
     """storeAspect -- writes aspect ratio to MythTV database
     as the python bindings don't seem to have a solution to this
     and MythWeb needs it. 
     """
     videoaspect = float(videowidth) / float(videoheight)
     if videoaspect < 1.41:
-      aspecttype = 11
+      return 11
     elif videoaspect < 1.81:
-      aspecttype = 12
+      return 12
     elif videoaspect < 2.31:
-      aspecttype = 13 
-    out.write('Aspect ratio set to %s\n' %(videoaspect))
-    try:
-      self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
-                         'values (%s, %s, 1, %s, NULL)'
-                           %(chanid, self.db.FormatSqlValue('', start), aspecttype))
-    except:
-      pass
+      return 13 
 
 def SafeForFilename(s):
   """SafeForFilename -- convert s into something which can be used for a 
@@ -248,7 +241,7 @@ class MythNetTvProgram:
 
     # We store the date of the entry a lot of different ways
     if not self.persistant.has_key('date'):
-      self.SetDate(datetime.datetime.now())
+      self.SetDate(datetime.datetime.utcnow())
 
     try:
       self.db.WriteOneRow('mythnettv_programs', 'guid', self.persistant)
@@ -334,7 +327,7 @@ class MythNetTvProgram:
 
       self.persistant['transfered'] = repr(total)
       self.persistant['size'] = repr(total)
-      self.persistant['last_attempt'] = datetime.datetime.now()
+      self.persistant['last_attempt'] = datetime.datetime.utcnow()
       self.Store()
 
       remote.close()
@@ -347,7 +340,7 @@ class MythNetTvProgram:
     sys.stdout.write('%s: %s --> %s\n' %(self.persistant['title'],
                                         self.persistant['subtitle'],
                                         s))
-    self.persistant['last_attempt'] = datetime.datetime.now()
+    self.persistant['last_attempt'] = datetime.datetime.utcnow()
     self.Store()
 
   def Download(self, datadir, force_proxy=None, force_budget=-1, out=sys.stdout):
@@ -374,7 +367,7 @@ class MythNetTvProgram:
       else:
         out.write('Download forced\n')
 
-    self.persistant['last_attempt'] = datetime.datetime.now()
+    self.persistant['last_attempt'] = datetime.datetime.utcnow()
 
     filename = self.TemporaryFilename(datadir, out=out)
 
@@ -498,7 +491,7 @@ class MythNetTvProgram:
     if total == 0:
       return False
 
-    self.persistant['last_attempt'] = datetime.datetime.now()
+    self.persistant['last_attempt'] = datetime.datetime.utcnow()
     self.persistant['download_finished'] = '1'
     self.persistant['transfered'] = repr(total)
     self.persistant['size'] = repr(total)
@@ -590,7 +583,7 @@ class MythNetTvProgram:
       if FLAGS.verbose:
 	out.write('  Using database time as timestamp for recording\n')
     except:
-      start = datetime.datetime.now()
+      start = datetime.datetime.utcnow()
       if FLAGS.verbose:
 	out.write('  Using now as timestamp for recording - %s\n' % start)
       
@@ -659,6 +652,7 @@ class MythNetTvProgram:
 	out.write("Found on TVRage or TTVDB: S%sE%s inetref:%s\n" % (realseason, realepisode, inetref))
     except:
       pass
+    # store aspect ratio
 
     # Determine the audioproperties of the video
     try:
@@ -680,6 +674,7 @@ class MythNetTvProgram:
       videoprop = getAspectRatio(vid.height(), vid.width())
     except:
       pass
+
 
     # Archive the original version of the video
     archiverow = self.db.GetOneRow('select * from mythnettv_archive '
@@ -704,7 +699,7 @@ class MythNetTvProgram:
     transcoded_filename = filename.split('/')[-1]
 
     out.write('Importing video %s...\n' % self.persistant['guid'])
-    epoch = time.mktime(datetime.datetime.now().timetuple())
+    epoch = time.mktime(datetime.datetime.utcnow().timetuple())
     dest_file = '%d_%s' %(epoch, transcoded_filename.replace(' ', '_'))
     
     # moving is better than copying as it uses less space and 
@@ -762,34 +757,9 @@ class MythNetTvProgram:
     tmp_recorded[u'progend'] = finish
     tmp_recorded[u'basename'] = dest_file
     tmp_recorded[u'filesize'] = self.persistant['size']
-    tmp_recorded[u'lastmodified'] = datetime.datetime.now()
+    tmp_recorded[u'lastmodified'] = datetime.datetime.utcnow()
     tmp_recorded[u'hostname'] = socket.gethostname()
 
-    try:
-      storeAspect(self, vid.height(), vid.width(), chanid, start)
-    except:
-      out.write('Could not write the aspect ratio to database')
-      pass
-
-    # if the height and/or width of the recording is known, store it in the markuptable
-    if vid.height():
-      if FLAGS.verbose:
-	out.write('Storing height: %s\n' % vid.height())
-      try:
-        self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
-                         'values (%s, %s, 12, 31, %s)'
-                         %(chanid, self.db.FormatSqlValue('', start), vid.height()))
-      except:
-        pass
-    if vid.width():
-      if FLAGS.verbose:
-	out.write('Storing width: %s\n' % vid.width())
-      try:
-        self.db.ExecuteSql('insert into recordedmarkup (chanid, starttime, mark, type, data)'
-                         'values (%s, %s, 12, 30, %s)'
-                         %(chanid, self.db.FormatSqlValue('', start), vid.width()))
-      except:
-        pass
 
     # If there is a category set for this subscription, then set that as well
     row = self.db.GetOneRow('select * from mythnettv_category where '
@@ -841,18 +811,24 @@ class MythNetTvProgram:
     #FIXME: we could get this from TTVDB
     tmp_recorded[u'originalairdate'] = '0000-00-00'
 
-    Recorded().create(tmp_recorded)
+    new_rec = Recorded().create(tmp_recorded)
     # add recordedprogram information using the MythTV python bindings 
-    RecordedProgram().create(tmp_recorded)
+    new_recprog = RecordedProgram().create(tmp_recorded)
 
-    # use python bindings to generate a preview PNG
-    try:
-      out.write('Generate preview, just so it does not need to be done later\n')
-      task = System(path='mythpreviewgen')
-      task.command('--chanid "%s"' % chanid, '--starttime "%s"' % start)
-    except:
-      out.write('Could not generate preview image. Will be done by the frontend later.\n')
-      pass
+    # if we can get the right aspect ratio store it to maruptable
+    if vid.height() and vid.width():
+      new_rec.markup.add(1,0,aspectType(self, vid.height(), vid.width(), chanid, start)) 
+
+    # if the height and/or width of the recording is known, store it in the markuptable
+
+    if vid.height():
+      if FLAGS.verbose:
+	out.write('  Storing height: %s\n' % vid.height())
+      new_rec.markup.add(12,vid.height(),31)
+    if vid.width():
+      if FLAGS.verbose:
+	out.write('  Storing width: %s\n' % vid.width())
+      new_rec.markup.add(12,vid.width(),30)
     
     self.SetImported()
     out.write('Finished\n\n')
@@ -1044,3 +1020,20 @@ class MythNetTvProgram:
     for row in self.db.GetRows('SELECT title, subtitle, basename FROM recorded WHERE title LIKE "%s";' % (title)):
       row2 = self.db.GetRow('SELECT title, subtitle FROM mythnettv_programs WHERE basename LIKE "%s";' % (row['basename']))
       out.write('Subtitle: %s' % row2['subtitle'])
+
+  def allaspects(self, title, out=sys.stdout):
+    if title != "":
+      sql = self.db.GetRows('SELECT chanid, starttime, basename FROM recorded WHERE title LIKE "%s";' % (title))
+    else:      
+      sql = self.db.GetRows('SELECT chanid, starttime, basename, title, subtitle FROM recorded;')
+    for row in sql:
+      if self.db.GetRows('SELECT chanid FROM recordedmarkup WHERE chanid LIKE "%s" and starttime LIKE "%s";' % (row['chanid'], row['starttime'])):
+        out.write('')
+      else:
+        out.write('Updating aspect for show %s : %s\n' % (row['title'], row['subtitle']))
+        try:
+          filename = utility.findFullFile(row['basename'])
+          vid = video_inspector.VideoInspector(filename)
+          storeAspect(self, vid.height(), vid.width(), row['chanid'], row['starttime'])
+        except:
+          out.write('Eror updating %s : %s\n' % (row['title'], row['subtitle']))

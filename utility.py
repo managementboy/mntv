@@ -79,6 +79,12 @@ def GetVideoDir():
 
   return videodir
 
+def findFullFile(filename):
+  SG = MythTV.MythBE().getSGList(socket.gethostname(), 'Default', '')
+  for dir in SG:
+    fulldir = dir + '/' + filename
+    if os.path.isfile(fulldir):
+      return fulldir
 
 def ExplainVideoDir():
   """ExplainVideoDir -- return the directory to store video in"""
@@ -290,4 +296,3 @@ def getBiggestSG():
       mylist[i.path]=i.freespace
   #return only a string of the largest SG
   return str(max(mylist.iterkeys(), key=lambda k: mylist[k]))
-
