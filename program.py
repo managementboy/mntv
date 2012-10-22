@@ -820,18 +820,20 @@ class MythNetTvProgram:
     new_recprog = RecordedProgram().create(tmp_recorded)
     #if we can get the right aspect ratio store it to maruptable
     #if vid.height() and vid.width():
-    new_rec.markup.add(1,0,aspectType(self, vid.height(), vid.width(), chanid, start)) 
+    new_rec.markup.add(1,aspectType(self, vid.height(), vid.width(), chanid, start), None) 
     # if the height and/or width of the recording is known, store it in the markuptable
 
     if vid.height():
       if FLAGS.verbose:
 	out.write('  Storing height: %s\n' % vid.height())
-      new_rec.markup.add(1,vid.height(),31)
+      new_rec.markup.add(1,31,vid.height())
     if vid.width():
       if FLAGS.verbose:
 	out.write('  Storing width: %s\n' % vid.width())
-      new_rec.markup.add(1,vid.width(),30)
-    
+      new_rec.markup.add(1,30,vid.width())
+    # and now store markup to database
+    new_rec.update()    
+
     self.SetImported()
     out.write('Finished\n\n')
 
@@ -1032,13 +1034,14 @@ class MythNetTvProgram:
       if self.db.GetRows('SELECT chanid FROM recordedmarkup WHERE chanid LIKE "%s" and starttime LIKE "%s";' % (row['chanid'], row['starttime'])):
         out.write('')
       else:
-        out.write('Updating aspect for show %s : %s\n' % (row['title'], row['subtitle']))
         try:
-         filename = utility.findFullFile(row['basename'])
-         out.write('%s') %(filename)
+          out.write('Updating aspect for show %s : %s... %s\n' % (row['title'], row['subtitle'],row['starttime']))
+          filename = utility.findFullFile(row['basename'])
+          vid = video_inspector.VideoInspector(filename)
+          old_rec = Recorded((row['chanid'], row['starttime'] + datetime.timedelta(hours=2)))
+          old_rec.markup.add(1,aspectType(self, vid.height(), vid.width(), row['chanid'], row['starttime']), None)
+          old_rec.markup.add(1,31,vid.height())          
+          old_rec.markup.add(1,30,vid.width())
+          old_rec.update()
         except:
-         filename = "/tmp/test.mpg"
-        vid = video_inspector.VideoInspector(filename)
-        #storeAspect(self, vid.height(), vid.width(), row['chanid'], row['starttime'])
-        old_rec = Recorded((row['chanid'], row['starttime']))
-        old_rec.markup.add(1,0,aspectType(self, vid.height(), vid.width(), chanid, start))
+          pass
