@@ -20,8 +20,6 @@ def Download(site, identifier, datadir):
   """
   download_ok = False
   print 'Downloading "%s"...\n' % identifier
-  filename = "" 
-  filename = '%s/%s.flv' %(datadir, file)
 
   os.chdir(datadir)
   download = subprocess.Popen(['/usr/bin/youtube-dl', identifier], stdout=subprocess.PIPE)
@@ -36,5 +34,9 @@ def Download(site, identifier, datadir):
   if not download_ok:
     return 0
 
-  print 'New destination will be %s\n' % filename
-  return os.path.basename(filename)
+  filename = '%s.flv' %(identifier)
+  if os.path.isfile(filename):
+    return filename
+  filename = '%s.mp4' %(identifier)
+  if os.path.isfile(filename):
+    return filename

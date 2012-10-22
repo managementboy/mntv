@@ -570,11 +570,15 @@ class MythNetTvProgram:
       pass
 
     videodir = utility.GetVideoDir()
-    try:
-      vid = video_inspector.VideoInspector(filename)    
-    except:
-      out.write("No video metadata could be detected")
-      pass
+    out.write(' Videodir %s\n' % videodir)
+    out.write(' Filename %s\n' % filename)
+   # try:
+    vid = video_inspector.VideoInspector(filename)
+    if FLAGS.verbose:
+      out.write('  Videometadata: %s, %s\n' % (vid.width(),vid.height()))
+   # except:
+   #   out.write("No video metadata could be detected")
+   #   pass
 
     # Try to use the publish time of the RSS entry as the start time...
     try:
@@ -814,21 +818,19 @@ class MythNetTvProgram:
     new_rec = Recorded().create(tmp_recorded)
     # add recordedprogram information using the MythTV python bindings 
     new_recprog = RecordedProgram().create(tmp_recorded)
-
-    # if we can get the right aspect ratio store it to maruptable
-    if vid.height() and vid.width():
-      new_rec.markup.add(1,0,aspectType(self, vid.height(), vid.width(), chanid, start)) 
-
+    #if we can get the right aspect ratio store it to maruptable
+    #if vid.height() and vid.width():
+    new_rec.markup.add(1,0,aspectType(self, vid.height(), vid.width(), chanid, start)) 
     # if the height and/or width of the recording is known, store it in the markuptable
 
     if vid.height():
       if FLAGS.verbose:
 	out.write('  Storing height: %s\n' % vid.height())
-      new_rec.markup.add(12,vid.height(),31)
+      new_rec.markup.add(1,vid.height(),31)
     if vid.width():
       if FLAGS.verbose:
 	out.write('  Storing width: %s\n' % vid.width())
-      new_rec.markup.add(12,vid.width(),30)
+      new_rec.markup.add(1,vid.width(),30)
     
     self.SetImported()
     out.write('Finished\n\n')
@@ -1032,8 +1034,11 @@ class MythNetTvProgram:
       else:
         out.write('Updating aspect for show %s : %s\n' % (row['title'], row['subtitle']))
         try:
-          filename = utility.findFullFile(row['basename'])
-          vid = video_inspector.VideoInspector(filename)
-          storeAspect(self, vid.height(), vid.width(), row['chanid'], row['starttime'])
+         filename = utility.findFullFile(row['basename'])
+         out.write('%s') %(filename)
         except:
-          out.write('Eror updating %s : %s\n' % (row['title'], row['subtitle']))
+         filename = "/tmp/test.mpg"
+        vid = video_inspector.VideoInspector(filename)
+        #storeAspect(self, vid.height(), vid.width(), row['chanid'], row['starttime'])
+        old_rec = Recorded((row['chanid'], row['starttime']))
+        old_rec.markup.add(1,0,aspectType(self, vid.height(), vid.width(), chanid, start))
