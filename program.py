@@ -47,6 +47,9 @@ FLAGS = gflags.FLAGS
 gflags.DEFINE_boolean('force', False,
                       'Force downloads to run, even if they failed recently')
 
+if(os.environ.get('HOME','') == ''):
+    os.environ['HOME'] = '/home/mythtv'
+
 
 # Exceptions returned by this module
 class StorageException(utility.LoggingException):

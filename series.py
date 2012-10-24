@@ -108,7 +108,7 @@ def TVRageDate(title, year, month, day, out=sys.stdout):
       season = tvshow.season(seasoncount)
       for episodes in season:
         if tvshow.season(seasoncount).episode(episodes).airdate == date(int(year), int(month), int(day)):
-          subtitle = date(int(year), int(month), int(day)).strftime("%Y.%m.%d") + " " + tvshow.season(seasoncount).episode(episodes).title
+          subtitle = tvshow.season(seasoncount).episode(episodes).title
           #return subtitle and description
           if title == tvshow.season(seasoncount).episode(episodes).show:
             return subtitle, utility.massageDescription(tvshow.season(seasoncount).episode(episodes).summary), tvshow.season(seasoncount).episode(episodes).season, tvshow.season(seasoncount).episode(episodes).number
@@ -164,7 +164,7 @@ def TTVDBDate(title, year, month, day, out=sys.stdout):
         except:
           airdate = datetime(1,1,1)
         if airdate == datetime(int(year), int(month), int(day)):
-          subtitle = datetime(int(year), int(month), int(day)).strftime("%Y.%m.%d") + " " + tvshow[season][episode]['episodename']
+          subtitle = tvshow[season][episode]['episodename']
           #return subtitle and description
           return subtitle, utility.massageDescription(tvshow[season][episode]['overview']), season, episode, tvshow[season][episode]['seriesid']
           found = True
