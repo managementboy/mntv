@@ -575,13 +575,13 @@ class MythNetTvProgram:
     videodir = utility.GetVideoDir()
     out.write(' Videodir %s\n' % videodir)
     out.write(' Filename %s\n' % filename)
-   # try:
-    vid = video_inspector.VideoInspector(filename)
-    if FLAGS.verbose:
-      out.write('  Videometadata: %s, %s\n' % (vid.width(),vid.height()))
-   # except:
-   #   out.write("No video metadata could be detected")
-   #   pass
+    try:
+      vid = video_inspector.VideoInspector(filename)
+      if FLAGS.verbose:
+        out.write('  Videometadata: %s, %s\n' % (vid.width(),vid.height()))
+    except:
+      out.write("No video metadata could be detected")
+      pass
 
     # Try to use the publish time of the RSS entry as the start time...
     try:
@@ -661,6 +661,7 @@ class MythNetTvProgram:
       pass
     # store aspect ratio
 
+    audioprop = ''
     # Determine the audioproperties of the video
     try:
       audioprop = vid.audio_channels_string().upper()
@@ -822,8 +823,8 @@ class MythNetTvProgram:
     # add recordedprogram information using the MythTV python bindings 
     new_recprog = RecordedProgram().create(tmp_recorded)
     #if we can get the right aspect ratio store it to maruptable
-    #if vid.height() and vid.width():
-    new_rec.markup.add(1,aspectType(self, vid.height(), vid.width(), chanid, start), None) 
+    if vid.height() and vid.width():
+      new_rec.markup.add(1,aspectType(self, vid.height(), vid.width(), chanid, start), None) 
     # if the height and/or width of the recording is known, store it in the markuptable
 
     if vid.height():

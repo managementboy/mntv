@@ -166,19 +166,22 @@ class MythNetTvDatabase:
             %('mythiptv_%s' % table, 'mythnettv_%s' % table))
 
         else:
+          print 'Creating tables:'
           self.CreateTable(table)
 
     # Check the schema version
     self.version = self.GetSetting('schema')
     if int(self.version) < int(CURRENT_SCHEMA):
       print 'Updating tables'
+      print 'Schema MythNetTV = %s' % CURRENT_SCHEMA
+      print 'Schema Database  = %s' % self.version 
       self.UpdateTables()
     elif int(self.version) > int(CURRENT_SCHEMA):
       print 'The database schema is newer than this version of the code, '
       print 'it seems like you might need to upgrade?'
       print
-      print 'Current = %s' % CURRENT_SCHEMA
-      print 'Database = %s' % self.version
+      print 'Schema MythNetTV = %s' % CURRENT_SCHEMA
+      print 'Schema Database  = %s' % self.version
       sys.exit(1)
 
     # Make sure we have a chanid
@@ -273,7 +276,7 @@ class MythNetTvDatabase:
     """GetSetting -- get the current value of a setting"""
 
     row = self.GetOneRow('select value from mythnettv_settings where '
-                         'name="%s";' % name)
+                         'name="%s" limit 1;' % name)
     if row == None:
       return None
     return row['value']
@@ -457,15 +460,15 @@ class MythNetTvDatabase:
     print 'Info: Creating %s table' % tablename
     if tablename == 'log':
       self.db_connection.query('create table mythnettv_log (sequence int, '
-                               'timestamp datetime, message text);')
+                               'timestamp datetime, message text) ENGINE = MYISAM;')
       self.db_connection.query('insert into mythnettv_log (sequence) '
                                'values(0);')
 
     elif tablename == 'settings':
       self.db_connection.query('create table mythnettv_settings (name text, '
-                               'value text);')
+                               'value text) ENGINE = MYISAM;')
       self.db_connection.query('insert into mythnettv_settings (name, value) '
-                               'values("schema", 7);')
+                               'values("schema", "7");')
 
     elif tablename == 'programs':
       self.db_connection.query('create table mythnettv_programs (guid text, '
@@ -475,11 +478,11 @@ class MythNetTvDatabase:
                                'download_started int, '
                                'download_finished int, '
                                'imported int, transfered int, size int, '
-                               'filename text);')
+                               'filename text)ENGINE = MYISAM;')
 
     elif tablename == 'subscriptions':
       self.db_connection.query('create table mythnettv_subscriptions ('
-                               'url text, title text);')
+                               'url text, title text) ENGINE = MYISAM;')
 
     else:
       self.Log('Error: Don\'t know how to create %s' % tablename)
@@ -609,8 +612,7 @@ class MythNetTvDatabase:
       print 'managementboy@gmail.com'
       sys.exit(1)
 
-    self.db_connection.query('update mythnettv_settings set value = "%s" '
-                             'where name = "schema";' % self.version)
+    self.WriteSetting('schema', self.version)
 
   def ExecuteSql(self, sql):
     """ ExecuteSql -- execute some SQL and return the number of rows affected

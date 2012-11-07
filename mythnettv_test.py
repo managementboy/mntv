@@ -37,7 +37,6 @@ class UserInterfaceTests(unittest.TestCase):
   def Cursor(self):
     """ Return a cursor to the test database """
     db_connection = MySQLdb.connect(host = 'localhost',
-                                    
                                     user = 'test',
                                     passwd = 'test',
                                     db = 'mythnettv_tests')
@@ -58,7 +57,7 @@ class UserInterfaceTests(unittest.TestCase):
   # the test database instance, and a random data directory
   REQUIRED_INVOKATION = ['mythnettv', '--db_host=localhost', '--db_user=test',
                          '--db_password=test', '--db_name=mythnettv_tests',
-                         '--datadir=/tmp/testdata', '--nocommflag',
+                         '--datadir=/tmp/testdata', 
                          '--nopromptforannounce']
 
   def AssertOutputContains(self, output, substring):
@@ -105,7 +104,7 @@ I expected to not find the string "%s" in this output:
     mythnettv.main(self.REQUIRED_INVOKATION +
                    ['subscribe',
                     'http://www.stillhq.com/mythtv/mythnettv/testdata/'
-                    'gruen_mp4.xml', 'Gruen Transfer'],
+                    'gruen_mp4.xml', 'Gruen Transfer', '', '', ''],
                    out=output)
     self.AssertOutputContains(output.getvalue(), 'Subscribed to')
 
