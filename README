@@ -16,16 +16,20 @@ python-tvrage at https://bitbucket.org/ckreutzer/python-tvrage/
 
 If you are going to use BitTorrent you need Transmission:
 $ sudo apt-get install transmission
+
 and the python module:
 transmissionrpc at https://bitbucket.org/blueluna/transmissionrpc/
+$ sudo easy_install transmissionrpc
+
 bencode at http://pypi.python.org/pypi/BitTorrent-bencode/5.0.8
+$ sudo easy_install BitTorrent-bencode
+
 and hashlib
 $ sudo apt-get install python-hashlib
 or at http://docs.python.org/library/hashlib.html
 
 You also need to install Mark Pilgrim's Universal Feed Parser from
 http://www.feedparser.org. On Debian or Ubuntu you can install it like this:
-
 $ sudo apt-get install python-feedparser python-pyparsing
 
 If you want to import Youtube videos you need youtube-dl. On 
@@ -33,11 +37,9 @@ Ubuntu:
 $ sudo apt-get install youtube-dl
 
 You might need Python ctypes support. On Debian / Ubuntu, its as simple as:
-
 $ sudo apt-get install python-ctypes
 
 You also need the Python MySQL module:
-
 $ sudo apt-get install python-mysqldb
 
 Using MythNetTv is simple. If you want MythNetTv to manage your
