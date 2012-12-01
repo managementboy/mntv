@@ -538,7 +538,7 @@ class MythNetTvDatabase:
       self.db_connection.query('alter table mythnettv_subscriptions '
                                'drop column archive_to;')
       self.db_connection.query('create table mythnettv_archive '
-                               '(title text, path text);')
+                               '(title text, path text) ENGINE = MYISAM;')
       self.version = '13'
 
     if self.version == '13':
@@ -550,13 +550,13 @@ class MythNetTvDatabase:
     if self.version == '14':
       self.Log('Upgrading schema from 14 to 15')
       self.db_connection.query('create table mythnettv_proxies '
-                               '(url text, http_proxy text);')
+                               '(url text, http_proxy text) ENGINE = MYISAM;')
       self.version = '15'
 
     if self.version == '15':
       self.Log('Upgrading schema from 15 to 16')
       self.db_connection.query('create table mythnettv_proxy_usage '
-                               '(day date, http_proxy text, bytes int);')
+                               '(day date, http_proxy text, bytes int) ENGINE = MYISAM;')
       self.version = '16'
 
     if self.version == '16':

@@ -65,7 +65,6 @@ def Download(torrent_filename, tmpname, info_func,
   download_ok = False
   exit = False
   
-  tc = transmissionrpc.Client('localhost', port=9091, user='admin', password='admin')
   if torrent_filename.endswith('torrent'):
     torrent_file = open(torrent_filename)
     metainfo = bencode.bdecode(torrent_file.read())
@@ -73,13 +72,12 @@ def Download(torrent_filename, tmpname, info_func,
   else:
     # if magnet we only need the hash
     info = re.search('btih:([a-zA-Z\d]{40})', torrent_filename).group(1)
-    #out.write(torrent_filename)
     
   #open a transmission connection called tc
   try:
-    tc = transmissionrpc.Client('localhost', port=9091, user='admin', password='admin')
+    tc = transmissionrpc.Client('localhost', port=9091)
   except transmissionrpc.TransmissionError, e:
-    out.write(u'Failed to connect to transmission daemon "%s"' % e)
+    out.write(u'Failed to connect to transmission daemon "%s"\n' % e)
     
   #check if torrent is already being downloaded
   for keys in tc.info():

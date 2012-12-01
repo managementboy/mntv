@@ -19,16 +19,11 @@ def DisplayFriendlySize(bytes):
   if t != types.LongType and t != types.IntType and t != decimal.Decimal:
     return 'NotANumber(%s=%s)' %(t, bytes)
 
-  if bytes < 1024:
-    return '%d bytes' % bytes
-
-  if bytes < 1024 * 1024:
-    return '%d kb (%d bytes)' %((bytes / 1024), bytes)
-
-  if bytes < 1024 * 1024 * 1024:
-    return '%d mb (%d bytes)' %((bytes / (1024 * 1024)), bytes)
-
-  return '%d gb (%d bytes)' %((bytes / (1024 * 1024 * 1024)), bytes)
+  for x in ['bytes','KB','MB','GB']:
+    if bytes < 1024.0 and bytes > -1024.0:
+      return "%3.1f%s" % (bytes, x)
+    bytes /= 1024.0
+  return "%3.1f%s" % (bytes, 'TB')
 
 
 def DisplayFriendlyTime(seconds):

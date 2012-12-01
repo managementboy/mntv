@@ -121,7 +121,7 @@ def Sync(db, xmlfile, title, out=sys.stdout):
     try:
       description = utility.massageDescription(entry.description)
     except:
-      description = " "
+      description = ''
 
     subtitle = entry.title
 
