@@ -24,7 +24,7 @@ FLAGS = gflags.FLAGS
 complained_about_swf = False
 
 
-re_attributeparser = re.compile('([^=]*)="([^"]*)" *(.*)')
+re_attributeparser = re.compile(ur'([^=]*)="([^"]*)" *(.*)', re.UNICODE)
 def ParseAttributes(inputline):
   """ParseAttributes -- used to unmangle XML entity attributes"""
   line = inputline
@@ -123,7 +123,7 @@ def Sync(db, xmlfile, title, out=sys.stdout):
     except:
       description = ''
 
-    subtitle = entry.title
+    subtitle = entry.title.encode('ascii', 'ignore')
 
     if entry.has_key('media_description'):
       description = utility.massageDescription(entry['media_description'])
