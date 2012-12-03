@@ -270,7 +270,7 @@ def hashtitlesubtitle(title,subtitle):
   m = hashlib.md5()
   m.update(title)
   if subtitle:
-    m.update(subtitle)
+    m.update(subtitle.encode('utf8'))
   return m.hexdigest()
 
 import MythTV

@@ -123,7 +123,7 @@ def Sync(db, xmlfile, title, out=sys.stdout):
     except:
       description = ''
 
-    subtitle = entry.title.encode('ascii', 'ignore')
+    subtitle = entry.title
 
     if entry.has_key('media_description'):
       description = utility.massageDescription(entry['media_description'])
