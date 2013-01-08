@@ -185,7 +185,7 @@ def Sync(db, xmlfile, title, out=sys.stdout):
         
     if not done and entry.has_key('link'):
       if FLAGS.verbose:
-        out.write('%s' %(entry['link']))
+        out.write('Link found: %s' %(entry['link']))
       if entry['link'].startswith('magnet'):
 	if FLAGS.verbose:
 	  out.write('    Warning: treating the link as if it where a Magnet link\n')
@@ -220,21 +220,21 @@ def Sync(db, xmlfile, title, out=sys.stdout):
         done = True
 
       
-      # handle youtube rss feeds
-      if not done and entry['link'].startswith('http://www.youtube'):
-        if FLAGS.verbose:
-          out.write(' Warning: looks like a YouTube video link\n')
-        Download(db,
-               entry['link'],
-               utility.hashtitlesubtitle(title, subtitle),
-               'application/x-shockwave-flash',
-               title,
-               subtitle,
-               description,
-               date,
-               date_parsed,
-               out=out)
-        done = True
+     # handle youtube rss feeds
+    if not done and entry['link'].startswith('http://www.youtube'):
+      if FLAGS.verbose:
+        out.write(' Warning: looks like a YouTube video link\n')
+      Download(db,
+             entry['link'],
+             utility.hashtitlesubtitle(title, subtitle),
+             'application/x-shockwave-flash',
+             title,
+             subtitle,
+             description,
+             date,
+             date_parsed,
+             out=out)
+      done = True
       
     if not done and videos.has_key('text/html'):
       db.Log('Warning: Treating text/html as an video enclosure type for '
