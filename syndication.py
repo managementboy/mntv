@@ -162,10 +162,11 @@ def Sync(db, xmlfile, title, out=sys.stdout):
       if FLAGS.verbose:
         out.write('   Dupicate detected in GUID: %s\n' % utility.hashtitlesubtitle(title, subtitle))
       
+    # add this if you want actual bittorrent files instead of magnets 'application/x-bittorrent',
     for preferred in ['video/x-msvideo', 'video/mp4', 'video/x-xvid',
                       'video/wmv', 'video/x-ms-wmv', 'video/quicktime',
                       'video/x-m4v', 'video/x-flv', 'video/m4v',
-                      'application/x-bittorrent', 'video/msvideo',
+                      'video/msvideo',
                       'video/vnd.objectvideo', 'video/ms-wmv', 'video/mpeg']:
 
       if not done and videos.has_key(preferred):
@@ -199,6 +200,25 @@ def Sync(db, xmlfile, title, out=sys.stdout):
                date_parsed,
                out=out)
         done = True
+
+    if not done and entry.has_key('magnetURI'):
+      if FLAGS.verbose:
+        out.write('%s' %(entry['magnetURI']))
+      if entry['magnetURI'].startswith('magnet'):
+        if FLAGS.verbose:
+          out.write('    Warning: treating the magnetURI as if it where a Magnet link\n')
+        Download(db,
+               entry['magnetURI'],
+               utility.hashtitlesubtitle(title, subtitle),
+               'application/x-bittorrent',
+               title,
+               subtitle,
+               description,
+               date,
+               date_parsed,
+               out=out)
+        done = True
+
       
       # handle youtube rss feeds
       if not done and entry['link'].startswith('http://www.youtube'):

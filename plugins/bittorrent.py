@@ -101,6 +101,7 @@ def Download(torrent_filename, tmpname, info_func,
     start_time = datetime.datetime.now()
     while (not download_ok) or (not exit):
       time.sleep(10) # don't hit transmission too much
+      out.flush()
       oldprogress = tc.info(tkey)[tkey].progress
       if tc.info(tkey)[tkey].progress == 100:
         download_ok = True
@@ -109,11 +110,10 @@ def Download(torrent_filename, tmpname, info_func,
       # kill download if it does not start after a few minutes
       if tc.info(tkey)[tkey].progress == 0:
         wait_time = datetime.datetime.now() - start_time
-        out.write('\r Have waited %s for download to start'
+        out.write('\r Have waited %s for download to start.'
                   %(time.strftime('%H:%M:%S', time.gmtime(wait_time.seconds))))
-        if wait_time.seconds > 600:
-          out.write('Waited %s for download to start. Giving up.\n'
-                    % wait_time)
+        if wait_time.seconds > 60:
+          out.write(' Giving up.\n')
           break
       # print the percent of download done if download started
       if tc.info(tkey)[tkey].progress > 0:
@@ -121,11 +121,12 @@ def Download(torrent_filename, tmpname, info_func,
         out.write(' %.2f%% downloaded' % tc.info(tkey)[tkey].progress) # use the formating provided by transmissionrpc
         out.write(' \t%.2f %s left' % format_size(tc.info(tkey)[tkey].leftUntilDone))
         out.write(' \t\tETA %- 13s\r' % tc.info(tkey)[tkey].format_eta())
-        out.flush()
+        #out.flush()
         if tc.info(tkey)[tkey].format_eta() == 'unknown' or tc.info(tkey)[tkey].format_eta() == 'not available':
           stalecounter = stalecounter + 1
-      if stalecounter >= 600:
-        out.write('Download has gone stale... stopping and removing')
+          out.write('.')
+      if stalecounter >= 100:
+        out.write('Download has gone stale... stopping and removing\n')
         tc.remove(tkey, delete_data=True, timeout=None)
         return 0
         exit = True

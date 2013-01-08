@@ -769,16 +769,7 @@ class MythNetTvProgram:
     tmp_recorded[u'hostname'] = socket.gethostname()
 
 
-    # If there is a category set for this subscription, then set that as well
-    row = self.db.GetOneRow('select * from mythnettv_category where '
-                            'title="%s";'
-                            % self.persistant['title'])
-    if row:
-      if FLAGS.verbose:
-	out.write('Setting category to %s\n' % row['category'])
-      tmp_recorded[u'category'] = row['category']
-
-    # Ditto the group
+    # If Recgroup add to database
     row = self.db.GetOneRow('select * from mythnettv_group where '
                             'title="%s";'
                             % self.persistant['title'])
@@ -786,6 +777,17 @@ class MythNetTvProgram:
       if FLAGS.verbose:
 	out.write('Setting recording group to %s\n' % row['recgroup'])
       tmp_recorded[u'recgroup'] = row['recgroup']
+      tmp_recorded[u'category'] = row['recgroup']
+
+
+    # If there is a category set for this subscription, then set that as well
+    #row = self.db.GetOneRow('select * from mythnettv_category where '
+    #                        'title="%s";'
+    #                        % self.persistant['title'])
+    #if row:
+    #  if FLAGS.verbose:
+#	out.write('Setting category to %s\n' % row['category'])
+#      tmp_recorded[u'category'] = row['category']
     
     # Ditto the inetref
     row = self.db.GetOneRow('select * from mythnettv_subscriptions where '
