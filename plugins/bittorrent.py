@@ -112,7 +112,7 @@ def Download(torrent_filename, tmpname, info_func,
         wait_time = datetime.datetime.now() - start_time
         out.write('\r Have waited %s for download to start.'
                   %(time.strftime('%H:%M:%S', time.gmtime(wait_time.seconds))))
-        if wait_time.seconds > 60:
+        if wait_time.seconds > 120:
           out.write(' Giving up.\n')
           break
       # print the percent of download done if download started
@@ -125,7 +125,7 @@ def Download(torrent_filename, tmpname, info_func,
         if tc.info(tkey)[tkey].format_eta() == 'unknown' or tc.info(tkey)[tkey].format_eta() == 'not available':
           stalecounter = stalecounter + 1
           out.write('.')
-      if stalecounter >= 100:
+      if stalecounter >= 200:
         out.write('Download has gone stale... stopping and removing\n')
         tc.remove(tkey, delete_data=True, timeout=None)
         return 0

@@ -473,9 +473,29 @@ class MythNetTvProgram:
       out.write('VimeoID:     %s\n' % vimeoid.group(1))
       total = streamingsites.Download('Vimeo', vimeoid.group(1), datadir)
       self.persistant['filename'] = total
+    
+    # deal with Xvideo downloads
+    elif self.persistant['url'].startswith('http://www.xvideo'):
+      xvideoid = self.persistant['url']
+      out.write('XvideoID:     %s\n' % xvideoid)
+      total = streamingsites.Download('xvideos', xvideoid, datadir)
+      self.persistant['filename'] = total
+      
+    # deal with XnXX downloads
+    elif self.persistant['url'].startswith('http://video.xnxx'):
+      xvideoid = self.persistant['url']
+      out.write('XnXXID:     %s\n' % xvideoid)
+      total = streamingsites.Download('xnxx', xvideoid, datadir)
+      self.persistant['filename'] = total  
+    
+    # deal with YouPorn downloads
+    elif self.persistant['url'].startswith('http://www.youporn'):
+      xvideoid = self.persistant['url']
+      out.write('YouPornID:     %s\n' % xvideoid)
+      total = streamingsites.Download('YouPorn', xvideoid, datadir)
+      self.persistant['filename'] = total
 
     #deal with YouTube downloads
-    #TODO does it realy work?
     elif self.persistant['url'].startswith('http://www.youtube'):
       url_data = urlparse.urlparse(self.persistant['url'])
       query = urlparse.parse_qs(url_data.query)
