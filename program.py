@@ -495,8 +495,15 @@ class MythNetTvProgram:
       total = streamingsites.Download('YouPorn', xvideoid, datadir)
       self.persistant['filename'] = total
 
+    # deal with TeamCoco downloads
+    elif self.persistant['url'].startswith('http://teamcoco'):
+      xvideoid = self.persistant['url']
+      out.write('TeamCocoID:     %s\n' % xvideoid)
+      total = streamingsites.Download('teamcoco', xvideoid, datadir)
+      self.persistant['filename'] = total
+
     #deal with YouTube downloads
-    elif self.persistant['url'].startswith('http://www.youtube'):
+    elif self.persistant['url'].startswith('http://www.youtube') or self.persistant['url'].startswith('https://www.youtube'):
       url_data = urlparse.urlparse(self.persistant['url'])
       query = urlparse.parse_qs(url_data.query)
       youtubeid = query["v"][0]

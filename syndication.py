@@ -131,8 +131,8 @@ def Sync(db, xmlfile, title, out=sys.stdout):
 
     subtitle = entry.title
 
-    if entry.has_key('media_description'):
-      description = utility.massageDescription(entry['media_description'])
+#    if entry.has_key('media_description'):
+#      description = utility.massageDescription(entry['media_description'])
      
     # Enclosures
     if entry.has_key('enclosures'):
@@ -227,7 +227,7 @@ def Sync(db, xmlfile, title, out=sys.stdout):
 
     
      # handle youtube rss feeds
-    if not done and entry['link'].startswith('http://www.youtube'):
+    if not done and entry['link'].startswith('http://www.youtube') or entry['link'].startswith('https://www.youtube'):
       if FLAGS.verbose:
         out.write(' Warning: looks like a YouTube video link\n')
       Download(db,
@@ -241,6 +241,22 @@ def Sync(db, xmlfile, title, out=sys.stdout):
              date_parsed,
              out=out)
       done = True
+
+    if not done and entry['link'].startswith('http://teamcoco'):
+      if FLAGS.verbose:
+        out.write(' Warning: looks like a TeamCoco video link\n')
+      Download(db,
+             entry['link'],
+             utility.hashtitlesubtitle(title, subtitle),
+             'application/x-shockwave-flash',
+             title,
+             subtitle,
+             description,
+             date,
+             date_parsed,
+             out=out)
+      done = True
+
       
     # handle xvideos rss feeds
     if not done and (entry['link'].startswith('http://www.xvideos') or entry['link'].startswith('http://www.youporn') or entry['link'].startswith('http://video.xnxx')):

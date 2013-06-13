@@ -10,6 +10,7 @@ import urllib2
 import program
 import subprocess
 import re
+import time
 
 def Download(site, identifier, datadir):
   """Download a video from common video streaming sites
@@ -26,6 +27,7 @@ def Download(site, identifier, datadir):
   download = subprocess.Popen(['/usr/bin/youtube-dl', identifier], stdout=subprocess.PIPE)
   while download_ok == False:
     out = download.stdout.read(1)
+    filename = re.match('[download] Destination:.*', out)
     if out == '' and download.poll() != None:
       download_ok = True
     if out != '':
@@ -35,31 +37,9 @@ def Download(site, identifier, datadir):
   if not download_ok:
     return 0
 
-  if identifier.startswith('http://www.xvideo'):
-    vidid = re.search('video(\d+)', identifier)
-    filename = '%s.flv' %(vidid.group(1))
-    if os.path.isfile(filename):
-      return filename
-  if identifier.startswith('http://www.youporn'):
-    vidid = re.search('watch/(\d+)', identifier)
-    filename = '%s.mp4' %(vidid.group(1))
-    if os.path.isfile(filename):
-      return filename
-    filename = '%s.flv' %(vidid.group(1))
-    if os.path.isfile(filename):
-      return filename
-  if identifier.startswith('http://video.xnxx'):
-    vidid = re.search('video(\d+)', identifier)
-    filename = '%s.mp4' %(vidid.group(1))
-    if os.path.isfile(filename):
-      return filename
-    filename = '%s.flv' %(vidid.group(1))
-    if os.path.isfile(filename):
-      return filename
-
-  filename = '%s.flv' %(identifier)
+  filename = subprocess.Popen(['/usr/bin/youtube-dl', '--get-filename', identifier], stdout=subprocess.PIPE)
+  time.sleep(3)
+  filename = filename.stdout.read()
+  filename = filename.rstrip()
   if os.path.isfile(filename):
-    return filename
-  filename = '%s.mp4' %(identifier)
-  if os.path.isfile(filename):
-    return filename
+    return filename  
