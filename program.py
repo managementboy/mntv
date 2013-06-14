@@ -502,6 +502,14 @@ class MythNetTvProgram:
       total = streamingsites.Download('teamcoco', xvideoid, datadir)
       self.persistant['filename'] = total
 
+    # deal with The Daily Show downloads
+    elif self.persistant['url'].startswith('http://www.thedaily'):
+      xvideoid = self.persistant['url']
+      out.write('TheDailyID: %s\n' % xvideoid)
+      total = streamingsites.Download('ComedyCentral', xvideoid, datadir)
+      self.persistant['filename'] = total
+
+
     #deal with YouTube downloads
     elif self.persistant['url'].startswith('http://www.youtube') or self.persistant['url'].startswith('https://www.youtube'):
       url_data = urlparse.urlparse(self.persistant['url'])

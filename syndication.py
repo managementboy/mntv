@@ -242,6 +242,21 @@ def Sync(db, xmlfile, title, out=sys.stdout):
              out=out)
       done = True
 
+    if not done and entry['link'].startswith('http://www.thedaily'):
+      if FLAGS.verbose:
+        out.write(' Warning: looks like a The Daily Show video link\n')
+      Download(db,
+             entry['link'],
+             utility.hashtitlesubtitle(title, subtitle),
+             'application/x-shockwave-flash',
+             title,
+             subtitle,
+             description,
+             date,
+             date_parsed,
+             out=out)
+      done = True
+
     if not done and entry['link'].startswith('http://teamcoco'):
       if FLAGS.verbose:
         out.write(' Warning: looks like a TeamCoco video link\n')
