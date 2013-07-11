@@ -27,6 +27,8 @@ import utility
 import series
 import tvrage.api
 
+import notification
+
 import UnRAR2
 
 # Note that plugins aren't actually plugins at the moment, and that flags
@@ -154,7 +156,7 @@ class MythNetTvProgram:
 
     # Persist what we know now
     self.persistant['url'] = url
-    self.persistant['filename'] = SafeForFilename(self.GetFilename(url))
+    self.persistant[u'filename'] = SafeForFilename(self.GetFilename(url))
     self.persistant['guid'] = guid
 
     try:
@@ -499,8 +501,9 @@ class MythNetTvProgram:
     elif self.persistant['url'].startswith('http://teamcoco'):
       xvideoid = self.persistant['url']
       out.write('TeamCocoID:     %s\n' % xvideoid)
+      total = u''
       total = streamingsites.Download('teamcoco', xvideoid, datadir)
-      self.persistant['filename'] = total
+      self.persistant[u'filename'] = total
 
     # deal with The Daily Show downloads
     elif self.persistant['url'].startswith('http://www.thedaily'):
@@ -534,7 +537,6 @@ class MythNetTvProgram:
     self.persistant['transfered'] = repr(total)
     self.persistant['size'] = repr(total)
     self.Store()
-      
     out.write('Download complete...\n')
     self.db.Log('Download of %s done' % self.persistant['guid'])
     return True
@@ -876,6 +878,7 @@ class MythNetTvProgram:
     new_rec.update()    
 
     self.SetImported()
+    notification.notify(socket.gethostbyname(socket.gethostname()),'MythNetTV show imported', 'A new show was imported. %s. %s. %s.' % (tmp_recorded[u'title'], tmp_recorded[u'subtitle'], tmp_recorded[u'description']), tmp_recorded[u'recgroup'])
     out.write('Finished\n\n')
 
     # And now mark the video as imported

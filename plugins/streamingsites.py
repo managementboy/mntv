@@ -18,16 +18,16 @@ def Download(site, identifier, datadir):
      Args:
         site:             (string)   name of the website (Vimeo, Youtube)
         identifyer:       (string)   unique identifier of the video (5720832 or tgbNymZ7vqY)
-        tmpname:          (string)   where to put download
+        datadir:          (string)   where to put download
   """
   download_ok = False
   print 'Downloading "%s"...\n' % identifier
 
   os.chdir(datadir)
-  download = subprocess.Popen(['/usr/bin/youtube-dl', identifier], stdout=subprocess.PIPE)
+  download = subprocess.Popen(['/usr/bin/youtube-dl', '--restrict-filenames', identifier], stdout=subprocess.PIPE)
   while download_ok == False:
     out = download.stdout.read(1)
-    filename = re.match('[download] Destination:.*', out)
+#    filename = re.match('[download] Destination:.*', out)
     if out == '' and download.poll() != None:
       download_ok = True
     if out != '':
@@ -36,10 +36,10 @@ def Download(site, identifier, datadir):
  
   if not download_ok:
     return 0
-
-  filename = subprocess.Popen(['/usr/bin/youtube-dl', '--get-filename', identifier], stdout=subprocess.PIPE)
+  filename = u''
+  filename = subprocess.Popen(['/usr/bin/youtube-dl', '--get-filename', '--restrict-filenames', identifier], stdout=subprocess.PIPE)
   time.sleep(3)
   filename = filename.stdout.read()
   filename = filename.rstrip()
   if os.path.isfile(filename):
-    return filename  
+    return filename 

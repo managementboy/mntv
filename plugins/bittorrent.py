@@ -14,6 +14,7 @@ import tempfile
 import time
 import re
 import stat
+import notification
 
 #TransmisionClient
 #import TransmissionClient
@@ -91,6 +92,7 @@ def Download(torrent_filename, tmpname, info_func,
       if FLAGS.verbose:
 	out.write(' Added torrent to transmission...')
       tkey = torrent.keys()[0]
+      notification.notify(socket.gethostbyname(socket.gethostname()),'MythNetTV downloads', 'Added a new torrent to download. %s' % (tc.info(tkey)[tkey].name), torrent.keys()[0])
     except transmissionrpc.TransmissionError, e:
       out.write('Failed to add torrent "%s"' % e)
       return 0
