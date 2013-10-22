@@ -17,7 +17,7 @@ def notify(bcastaddr, message_text, description, extra):
   """
   print 'Sending notification to frontends\n'
   
-  os.system('/usr/bin/mythutil -v none --notification --bcastaddr=%s --message_text="%s" --description="%s" --extra="%s"' %(bcastaddr, message_text, description, extra))
+  #os.system('/usr/bin/mythutil -v none --notification --bcastaddr=%s --message_text="%s" --description="%s" --extra="%s"' %(bcastaddr, message_text, description, extra))
   return 
 
 def progress(bcastaddr, message_text, description, progress, progress_text, extra):
@@ -33,7 +33,7 @@ def progress(bcastaddr, message_text, description, progress, progress_text, extr
   """
   print 'Sending notification to frontends\n'
 
-  os.system('/usr/bin/mythutil -v none --notification --bcastaddr=%s --message_text="%s" --description="%s" --progress=%s --porgess_text="%s" --extra="%s"' %(bcastaddr, message_text, description, progress, progress_text, extra)) 
+  #os.system('/usr/bin/mythutil -v none --notification --bcastaddr=%s --message_text="%s" --description="%s" --progress=%s --porgess_text="%s" --extra="%s"' %(bcastaddr, message_text, description, progress, progress_text, extra)) 
   return
   
 

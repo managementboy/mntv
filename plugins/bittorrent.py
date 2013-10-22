@@ -82,7 +82,9 @@ def Download(torrent_filename, tmpname, info_func,
     
   #check if torrent is already being downloaded
   for keys in tc.info():
-    if tc.info(keys)[keys].fields['hashString'] == hashlib.sha1(bencode.bencode(info)).hexdigest() or tc.info(keys)[keys].fields['hashString'] == info:
+#    if tc.info(keys)[keys].fields['hashString'] == hashlib.sha1(bencode.bencode(info)).hexdigest()
+# or tc.info(keys)[keys].fields['hashString'] == info:
+    if tc.info(keys)[keys].hashString == hashlib.sha1(bencode.bencode(info)).hexdigest() or tc.info(keys)[keys].hashString == info:
       out.write('The torrent is being downloaded by transmission. No need to add it again.\n')
       tkey = keys
   # and if not found add the new file to transmission
@@ -114,7 +116,7 @@ def Download(torrent_filename, tmpname, info_func,
         wait_time = datetime.datetime.now() - start_time
         out.write('\r Have waited %s for download to start.'
                   %(time.strftime('%H:%M:%S', time.gmtime(wait_time.seconds))))
-        if wait_time.seconds > 120:
+        if wait_time.seconds > 240:
           out.write(' Giving up.\n')
           break
       # print the percent of download done if download started
