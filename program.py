@@ -515,9 +515,10 @@ class MythNetTvProgram:
 
     #deal with YouTube downloads
     elif self.persistant['url'].startswith('http://www.youtube') or self.persistant['url'].startswith('https://www.youtube'):
-      url_data = urlparse.urlparse(self.persistant['url'])
-      query = urlparse.parse_qs(url_data.query)
-      youtubeid = query["v"][0]
+      #url_data = urlparse.urlparse(self.persistant['url'])
+      #query = urlparse.parse_qs(url_data.query)
+      #youtubeid = query["v"][0]
+      youtubeid = self.persistant['url']
       out.write('YouTubeID:   %s\n' % youtubeid)
       total = streamingsites.Download('YouTube', youtubeid, datadir)
       out.write('%s/n' % total)
