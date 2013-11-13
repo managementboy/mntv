@@ -53,6 +53,10 @@ You can update the view of the feed (i.e. find new posts) with:
 
 $ ./mythnettv update
 
+Ubuntu 12.10 and newer
+======================
+Ubuntu 12.10 now includes python-hashlib in package python2.7-minimal. For transmission there is now a transmission-daemon package as well.
+
 And you can find out what you are subscribed to with:
 
 $ ./mythnettv list
