@@ -42,6 +42,9 @@ $ sudo apt-get install python-ctypes
 You also need the Python MySQL module:
 $ sudo apt-get install python-mysqldb
 
+To support gzipped torrents python magic is neede:
+$ sudo apt-get install python-magic
+
 Using MythNetTv is simple. If you want MythNetTv to manage your
 subscriptions, then do something like:
 
