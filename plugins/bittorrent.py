@@ -26,6 +26,10 @@ import base64
 import bencode
 import hashlib
 
+#required for unzip
+import gzip
+import magic
+
 FLAGS = gflags.FLAGS
 gflags.DEFINE_string('uploadrate', '',
                      'Override the default upload rate for bittorrent for '
@@ -67,7 +71,26 @@ def Download(torrent_filename, tmpname, info_func,
   exit = False
   
   if torrent_filename.endswith('torrent'):
+    #try to unzip any torrent file... seems standard now
+    try:
+      m=magic.open(magic.MAGIC_MIME)
+      m.load()
+      if 'x-gzip' in m.file(torrent_filename):
+        filetmp = torrent_filename+'.gz'
+        os.rename(torrent_filename,filetmp)
+        f_in = gzip.open(filetmp, 'rb')
+        f_out = open(torrent_filename, 'wb')
+        f_out.writelines(f_in)
+        f_out.close()
+        f_in.close()
+        os.remove(filetmp)
+        if FLAGS.verbose:
+          out.write('  Torrent file unzipped\n') 
+    except:
+      if FLAGS.verbose:
+        out.write('  Torrent file not gzipped or error unzipping\n')  
     torrent_file = open(torrent_filename)
+    
     metainfo = bencode.bdecode(torrent_file.read())
     info = metainfo['info']
   else:
