@@ -172,6 +172,9 @@ def Usage(out):
                       If the chanid is set in the subscription
                       mythnettv will map it to the imported
                       recording.
+  getchanid <callsign> 
+                    : returns the channel ID for a callsign.
+                      us %callsign% to do a fuzzy match
   http_proxy <url regexp> <proxy>
                     : you can choose to use a HTTP proxy for URL
                       requests matching a given regular expression.
@@ -663,6 +666,12 @@ you want to do this?\n\n""")
         prog.Store()
         out.write('Done\n')
       out.write('\n')
+      
+  elif argv[1] == 'getcallsign':
+    for row in db.GetRows('select callsign, chanid from channel where '
+                          'callsign LIKE "%s";'
+                          % argv[2]):
+      out.write('  %s: %s\n' %(row['callsign'], row['chanid']))
 
   elif argv[1] == 'unfail':
     filter = GetPossible(argv, 2)
