@@ -667,7 +667,7 @@ you want to do this?\n\n""")
         out.write('Done\n')
       out.write('\n')
       
-  elif argv[1] == 'getcallsign':
+  elif argv[1] == 'getchanid':
     for row in db.GetRows('select callsign, chanid from channel where '
                           'callsign LIKE "%s";'
                           % argv[2]):
