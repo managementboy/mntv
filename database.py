@@ -34,7 +34,7 @@ gflags.DEFINE_boolean('db_debugging', False,
                       'Output debugging messages for the database')
 
 
-CURRENT_SCHEMA='23'
+CURRENT_SCHEMA='24'
 HAVE_WARNED_OF_DEFAULTS = False
 
 
@@ -606,6 +606,13 @@ class MythNetTvDatabase:
       self.db_connection.query('alter table mythnettv_subscriptions '
                                'add column playgroup text;')
       self.version = '23'
+
+    # speed up searching for title-subtitle when updateing
+    if self.version == '23':
+      self.Log('Upgrading schema from 23 to 24')
+      self.db_connection.query('alter table mythnettv_programs '
+                               'ADD INDEX ( title( 256 ) , subtitle( 265 ) );')
+      self.version = '24'
 
     if self.version != CURRENT_SCHEMA:
       print 'Unknown schema version. This is a bug. Please report it to'

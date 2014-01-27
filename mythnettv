@@ -749,7 +749,7 @@ you want to do this?\n\n""")
     row = db.GetOneRow('SELECT subtitle FROM recorded where title LIKE "%s";' % argv[2])
     if row:
       out.write('\n\nCurrent Subtitle: %s\n' % (row['subtitle']))
-      prompt = ""
+      prompt = "New Title"
       subtitle = program.Prompt(prompt)
       db.ExecuteSql('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s" AND subtitle LIKE "%%%s%%";' 
                   % (subtitle, subtitle, argv[2], subtitle))

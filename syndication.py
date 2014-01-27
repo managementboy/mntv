@@ -156,13 +156,13 @@ def Sync(db, xmlfile, title, out=sys.stdout):
       out.write('  Considering: %s: %s\n' %(title, subtitle))
 
     # very crude, basic subtitle detection
-    if not done and db.GetOneRow('select * from mythnettv_programs '
+    if not done and db.GetOneRow('select title from mythnettv_programs '
                                    'where title=%s and subtitle=%s;' %(db.FormatSqlValue('', title), db.FormatSqlValue('', subtitle))):
       done = True
       if FLAGS.verbose:
         out.write('   Dupicate detected %s: %s\n' %(title, subtitle))
     
-    if not done and db.GetOneRow('select * from mythnettv_programs '
+    if not done and db.GetOneRow('select title from mythnettv_programs '
                                  'where guid="%s";' % utility.hashtitlesubtitle(title, subtitle)):
       done = True
       if FLAGS.verbose:

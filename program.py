@@ -160,7 +160,7 @@ class MythNetTvProgram:
     self.persistant['guid'] = guid
 
     try:
-      if self.db.GetOneRow('select * from mythnettv_programs '
+      if self.db.GetOneRow('select guid from mythnettv_programs '
                           'where guid="%s";' % guid).keys() != []:
         new_video = False
     except:
@@ -635,9 +635,14 @@ class MythNetTvProgram:
    
     # Ensure uniqueness for the start time
     interval = datetime.timedelta(seconds = 1)
-    while self.db.GetOneRow('select basename from recorded where starttime = %s and chanid = %s and basename != "%s"' \
+    if FLAGS.verbose:
+      out.write('  %s %s\n' %(chanid, start))
+
+    while self.db.GetOneRow('select basename from recorded where starttime = %s and chanid = %s' \
                                 %(self.db.FormatSqlValue('', start),
-                                  chanid, filename)):
+                                  chanid)):
+      if FLAGS.verbose:
+        out.write('  %s %s\n' %(chanid, start))
       start += interval
       
     # Determine the duration of the video
@@ -859,9 +864,17 @@ class MythNetTvProgram:
     #FIXME: we could get this from TTVDB
     tmp_recorded[u'originalairdate'] = '0000-00-00'
 
-    new_rec = Recorded().create(tmp_recorded)
-    # add recordedprogram information using the MythTV python bindings 
-    new_recprog = RecordedProgram().create(tmp_recorded)
+    try:
+      new_rec = Recorded().create(tmp_recorded)
+      # add recordedprogram information using the MythTV python bindings 
+      new_recprog = RecordedProgram().create(tmp_recorded)
+    except:
+      start = datetime.datetime.utcnow()
+      tmp_recorded[u'starttime'] = start
+      new_rec = Recorded().create(tmp_recorded)
+      # add recordedprogram information using the MythTV python bindings 
+      new_recprog = RecordedProgram().create(tmp_recorded) 
+
     #if we can get the right aspect ratio store it to maruptable
     if vid.height() and vid.width():
       new_rec.markup.add(1,aspectType(self, vid.height(), vid.width(), chanid, start), None) 
