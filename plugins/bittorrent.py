@@ -129,14 +129,16 @@ def Download(torrent_filename, tmpname, info_func,
     while (not download_ok) or (not exit):
       time.sleep(10) # don't hit transmission too much
       out.flush()
-      oldprogress = tc.info(tkey)[tkey].progress
+      #oldprogress = tc.info(tkey)[tkey].progress
+      oldprogress = tc.get_torrent(tkey).progress
       if tc.info(tkey)[tkey].progress == 100:
         download_ok = True
         break
+
+      wait_time = datetime.datetime.now() - start_time
       
       # kill download if it does not start after a few minutes
       if tc.info(tkey)[tkey].progress == 0:
-        wait_time = datetime.datetime.now() - start_time
         out.write('\r Have waited %s for download to start.'
                   %(time.strftime('%H:%M:%S', time.gmtime(wait_time.seconds))))
         if wait_time.seconds > 240:
@@ -152,8 +154,15 @@ def Download(torrent_filename, tmpname, info_func,
         if tc.info(tkey)[tkey].format_eta() == 'unknown' or tc.info(tkey)[tkey].format_eta() == 'not available':
           stalecounter = stalecounter + 1
           out.write('.')
-      if stalecounter >= 200:
-        out.write('Download has gone stale... stopping and removing\n')
+      # make sure downloads don't hang arround for very long
+      if tc.get_torrent(tkey)._fields['eta'].value > 7200 and wait_time.seconds > 600:
+        out.write('\nDownload will take more than 2 hours.. stopping and removing\n')
+        tc.remove(tkey, delete_data=True, timeout=None)
+        return 0
+        exit = True
+      # kill the download if it has gone stale
+      if stalecounter >= 200 or tc.info(tkey)[tkey].isStalled:
+        out.write('\nDownload has gone stale... stopping and removing\n')
         tc.remove(tkey, delete_data=True, timeout=None)
         return 0
         exit = True
