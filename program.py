@@ -892,7 +892,7 @@ class MythNetTvProgram:
     new_rec.update()    
 
     self.SetImported()
-    notification.notify(socket.gethostbyname(socket.gethostname()),'MythNetTV show imported', 'A new show was imported. %s. %s. %s.' % (tmp_recorded[u'title'], tmp_recorded[u'subtitle'], tmp_recorded[u'description']), tmp_recorded[u'recgroup'])
+    #notification.notify(socket.gethostbyname(socket.gethostname()),'MythNetTV show imported', 'A new show was imported. %s. %s. %s.' % (tmp_recorded[u'title'], tmp_recorded[u'subtitle'], tmp_recorded[u'description']), tmp_recorded[u'recgroup'])
     out.write('Finished\n\n')
 
     # And now mark the video as imported

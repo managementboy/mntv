@@ -105,19 +105,17 @@ def Download(torrent_filename, tmpname, info_func,
     
   #check if torrent is already being downloaded
   for keys in tc.info():
-#    if tc.info(keys)[keys].fields['hashString'] == hashlib.sha1(bencode.bencode(info)).hexdigest()
-# or tc.info(keys)[keys].fields['hashString'] == info:
-    if tc.info(keys)[keys].hashString == hashlib.sha1(bencode.bencode(info)).hexdigest() or tc.info(keys)[keys].hashString == info:
+    if tc.get_torrent(keys).hashString == hashlib.sha1(bencode.bencode(info)).hexdigest() or tc.get_torrent(keys).hashString == info:
       out.write('The torrent is being downloaded by transmission. No need to add it again.\n')
       tkey = keys
   # and if not found add the new file to transmission
   if tkey == -1:
     try:
-      torrent = tc.add_uri(torrent_filename, download_dir=tmpname)
+      torrent = tc.add_torrent(torrent_filename, download_dir=tmpname)
       if FLAGS.verbose:
 	out.write(' Added torrent to transmission...')
       tkey = torrent.keys()[0]
-      notification.notify(socket.gethostbyname(socket.gethostname()),'MythNetTV downloads', 'Added a new torrent to download. %s' % (tc.info(tkey)[tkey].name), torrent.keys()[0])
+      notification.notify(socket.gethostbyname(socket.gethostname()),'MythNetTV downloads', 'Added a new torrent to download. %s' % (tc.get_torrent(tkey).name), torrent.keys()[0])
     except transmissionrpc.TransmissionError, e:
       out.write('Failed to add torrent "%s"' % e)
       return 0
@@ -129,41 +127,42 @@ def Download(torrent_filename, tmpname, info_func,
     while (not download_ok) or (not exit):
       time.sleep(10) # don't hit transmission too much
       out.flush()
-      #oldprogress = tc.info(tkey)[tkey].progress
       oldprogress = tc.get_torrent(tkey).progress
-      if tc.info(tkey)[tkey].progress == 100:
+      # update torrent information
+      tupdate = tc.get_torrent(tkey)
+      # stop when done
+      if tupdate.progress == 100:
         download_ok = True
         break
-
+      # keep our own time since started
       wait_time = datetime.datetime.now() - start_time
-      
       # kill download if it does not start after a few minutes
-      if tc.info(tkey)[tkey].progress == 0:
+      if tupdate.progress == 0:
         out.write('\r Have waited %s for download to start.'
                   %(time.strftime('%H:%M:%S', time.gmtime(wait_time.seconds))))
         if wait_time.seconds > 240:
           out.write(' Giving up.\n')
           break
       # print the percent of download done if download started
-      if tc.info(tkey)[tkey].progress > 0:
+      if tupdate.progress > 0:
         out.write("\r                                                                          \r") # clean up
-        out.write(' %.2f%% downloaded' % tc.info(tkey)[tkey].progress) # use the formating provided by transmissionrpc
-        out.write(' \t%.2f %s left' % format_size(tc.info(tkey)[tkey].leftUntilDone))
-        out.write(' \t\tETA %- 13s\r' % tc.info(tkey)[tkey].format_eta())
-        #out.flush()
-        if tc.info(tkey)[tkey].format_eta() == 'unknown' or tc.info(tkey)[tkey].format_eta() == 'not available':
+        out.write(' %.2f%% downloaded' % tupdate.progress) # use the formating provided by transmissionrpc
+        out.write(' \t%.2f %s left' % format_size(tupdate.leftUntilDone))
+        out.write(' \tETA %- 13s' % tupdate.format_eta())
+        out.write(' \tPeers %s\r' % tupdate.peersSendingToUs)
+        if tupdate.format_eta() == 'unknown' or tupdate.format_eta() == 'not available': #update our own counter
           stalecounter = stalecounter + 1
           out.write('.')
-      # make sure downloads don't hang arround for very long
-      if tc.get_torrent(tkey)._fields['eta'].value > 7200 and wait_time.seconds > 600:
+      # make sure downloads don't hang arround for too long
+      if tupdate._fields['eta'].value > 7200 and wait_time.seconds > 600:
         out.write('\nDownload will take more than 2 hours.. stopping and removing\n')
-        tc.remove(tkey, delete_data=True, timeout=None)
+        tc.remove(tkey, delete_data=True, timeout=None) # remove from transmission and delete data
         return 0
         exit = True
       # kill the download if it has gone stale
-      if stalecounter >= 200 or tc.info(tkey)[tkey].isStalled:
+      if stalecounter >= 200 or tupdate.isStalled:
         out.write('\nDownload has gone stale... stopping and removing\n')
-        tc.remove(tkey, delete_data=True, timeout=None)
+        tc.remove(tkey, delete_data=True, timeout=None) # remove from transmission and delete data
         return 0
         exit = True
         
@@ -171,7 +170,8 @@ def Download(torrent_filename, tmpname, info_func,
     raise BitTorrentDownloadException('Error downloading bittorrent data: %s'
                                       % e)
 
-  out.write('Bittorrent download finished\n')
+  out.write('\nBittorrent download has finished\n')
+  # remove torrent from transmission but do NOT delete all data
   tc.remove(tkey, delete_data=False, timeout=None)
   if FLAGS.verbose:
     out.write('Torrent stopped, waiting a few seconds...\n')
