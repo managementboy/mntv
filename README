@@ -56,6 +56,13 @@ You can update the view of the feed (i.e. find new posts) with:
 
 $ ./mythnettv update
 
+Don't forget to create a gmailpassword.py file with only one line content
+within the same directory of the mythnettv. Content:
+gmailpassword="yourpassword"
+To change the email that gets the messages edit the gmail.py file.
+
+
+
 Ubuntu 12.10 and newer
 ======================
 Ubuntu 12.10 now includes python-hashlib in package python2.7-minimal. For transmission there is now a transmission-daemon package as well.
