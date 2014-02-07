@@ -113,9 +113,10 @@ def Download(torrent_filename, tmpname, info_func,
     try:
       torrent = tc.add_torrent(torrent_filename, download_dir=tmpname)
       if FLAGS.verbose:
-	out.write(' Added torrent to transmission...')
-      tkey = torrent.keys()[0]
-      notification.notify(socket.gethostbyname(socket.gethostname()),'MythNetTV downloads', 'Added a new torrent to download. %s' % (tc.get_torrent(tkey).name), torrent.keys()[0])
+	out.write(' Added torrent to transmission...\n')
+        out.write(' Torrent ID "%s"\n' % tkey)
+      tkey = torrent._fields['id'].value
+      notification.notify(socket.gethostbyname(socket.gethostname()),'MythNetTV downloads', 'Added a new torrent to download. %s' % (tc.get_torrent(tkey).name), tkey)
     except transmissionrpc.TransmissionError, e:
       out.write('Failed to add torrent "%s"' % e)
       return 0
