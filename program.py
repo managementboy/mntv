@@ -27,6 +27,8 @@ import utility
 import series
 import tvrage.api
 
+import gmail
+
 import notification
 
 import UnRAR2
@@ -394,6 +396,9 @@ class MythNetTvProgram:
         self.persistant['imported'] = 0
         self.persistant['failed'] = 1
         self.Store()
+        gmail.send_email('Too many failed attempts for show %s - %s.\n'
+                         %(self.persistant['title'],
+                           self.persistant['subtitle']))
         return False
 
     self.persistant.setdefault('attempts', 0)
@@ -1058,7 +1063,7 @@ class MythNetTvProgram:
           self.db.ExecuteSql ('update recorded set starttime="%s", endtime="%s", progstart="%s", progend="%s" WHERE basename = "%s";'
                              % (start, end, start, end, row['basename']))
       except:
-	out.write('No updates made...\n')
+	out.write('No or only some updates made...\n')
         pass
 
   def titlefix(self, oldtitle, newtitle, out=sys.stdout):

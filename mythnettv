@@ -3,7 +3,7 @@
 # This script requires that mplayer be installed
 
 # Copyright (C) Michael Still (mikal@stillhq.com) 2006, 2007, 2008
-# Copyright (C) Elkin Fricke (managementboy@gmail.com) 2011
+# Copyright (C) Elkin Fricke (managementboy@gmail.com) 2011-2014
 # Released under the terms of the GNU GPL v2
 
 # Latest source is always at http://www.stillhq.com/mythtv/mythnettv/
@@ -744,6 +744,37 @@ you want to do this?\n\n""")
     title = GetPossible(argv, 2)
     prog = program.MythNetTvProgram(db)
     prog.sepfix(title)
+
+  elif argv[1] == 'autofixtitle':
+    row = db.GetRows('SELECT subtitle FROM recorded where title LIKE "%s";' % argv[2])    
+    p = re.compile(r'(.*)\ [0-9]of[0-9]\ .*')
+    p2 = re.compile(r'(.*)\ ([0-9][0-9][0-9][0-9])\ (.*)')
+    if row:
+      for item in row:
+        try:
+          out.write('\n  Current Subtitle: %s\n' % (item["subtitle"]))
+          m = p.match(item["subtitle"])
+          db.ExecuteSql('UPDATE recorded SET title = "%s", subtitle = replace(subtitle,"%s","") WHERE title LIKE "%s" AND subtitle LIKE "%s";'
+                     % (m.group(1), m.group(1), argv[2], m.group(0)))
+          prog = program.MythNetTvProgram(db)
+          prog.TVRage(m.group(1))
+          prog.TTVDB(m.group(1))
+        except:
+          out.write('  No match could be found for XofY ... nothing changed\n')
+          pass
+        try:
+          m = p2.match(item["subtitle"])
+          db.ExecuteSql('UPDATE recorded SET title = "%s", subtitle = "%s", originalairdate = "%s-01-01" WHERE title LIKE "%s" AND subtitle LIKE "%s";'
+                    % (m.group(1), m.group(3), m.group(2), argv[2], m.group(0)))
+          prog = program.MythNetTvProgram(db)
+          prog.TVRage(m.group(1))
+          prog.TTVDB(m.group(1))
+        except:
+          out.write('  No match could be found for YYYY ... nothing changed\n')
+          pass
+    else:
+      out.write('Sorry, no shows with the title %s available\n' % argv[2])
+
   
   elif argv[1] == 'titlesubtitlefix':
     row = db.GetOneRow('SELECT subtitle FROM recorded where title LIKE "%s";' % argv[2])
