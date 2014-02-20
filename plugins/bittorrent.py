@@ -164,7 +164,7 @@ def Download(torrent_filename, tmpname, info_func,
           out.write('.')
       # make sure downloads don't hang arround for too long
       if tupdate._fields['eta'].value > downloadtime and wait_time.seconds > 600:
-        out.write('\nDownload will take more than 2 hours.. stopping and removing\n')
+        out.write('\nDownload will take more than specified maximum... stopping and removing\n')
         tc.remove(tkey, delete_data=True, timeout=None) # remove from transmission and delete data
         return 0
         exit = True
