@@ -4,6 +4,7 @@
 # Released under the terms of the GNU GPL v2
 
 # Subscription functionality
+BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 
 import datetime
 import time
@@ -46,10 +47,10 @@ def Download(db, url, guid, mime,
   prog = program.MythNetTvProgram(db)
   if prog.FromUrl(url, guid):
     out.write('  Creating program for %s: %s from %s\n\n'
-              %(database.Normalize(title), database.Normalize(subtitle), guid))
+              %(database.Normalize(title), database.Normalize(subtitle), guid), GREEN)
   elif FLAGS.verbose:
     out.write('  Already have %s: %s from %s\n'
-              %(database.Normalize(title), database.Normalize(subtitle), guid))
+              %(database.Normalize(title), database.Normalize(subtitle), guid), MAGENTA)
 
     # TODO(mikal): Consider using accessor methods here
     for info in ['download_started', 'download_finished', 'imported',
@@ -65,7 +66,7 @@ def Download(db, url, guid, mime,
     bad_program.SetDate(datetime.datetime.now())
     bad_program.Store()
     out.write('Program with guid = %s has invalid date, using now\n'
-              % row['guid'])
+              % row['guid'], RED)
 
   # Update program details
   prog.SetMime(mime)

@@ -6,6 +6,7 @@
 # This file is the core of MythNetTV. It is intended that user interfaces call
 # into this module to get things done, and then present their own interface in
 # whatever manner makes sense to them
+BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 
 import gflags
 import sys
@@ -130,7 +131,7 @@ def DownloadAndImport(db, guid, out=sys.stdout):
       prog.Store()
 
   except Exception, e:
-    out.write('Download Error: %s\n' % e)
+    out.write('Download Error: %s\n' % e, RED)
     out.write(traceback.format_exc())
 
   return False
@@ -167,4 +168,4 @@ def Update(out, title=None):
       syndication.Sync(db, xmlfile, row['title'], out=out)
 
     except Exception, e:
-      out.write('Failed to update %s: %s\n' %(row['url'], e))
+      out.write('Failed to update %s: %s\n' %(row['url'], e), RED)

@@ -7,7 +7,7 @@
 # Released under the terms of the GNU GPL v2
 
 # Latest source is always at http://www.stillhq.com/mythtv/mythnettv/
-
+BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 
 import commands
 import datetime
@@ -30,6 +30,8 @@ import syndication
 import mythnettvcore
 import utility
 
+import color
+
 __author__ = 'Michael Still (mikal@stillhq.com), Elkin Fricke (managementboy@gmail.com)'
 __version__ = 'Release 8'
 
@@ -47,6 +49,10 @@ gflags.DEFINE_boolean('prompt', True,
 gflags.DEFINE_boolean('promptforannounce', True,
                       'Should the user be prompted about subscribing to the '
                       'announce video feed?')
+gflags.DEFINE_string('downloadtime', '',
+                     'The maximum time a torrent is allowed to run for.')
+gflags.DEFINE_string('startuptime', '',
+                     'The maximum time we wait for a torrent to start.')
 
 
 def GetPossible(array, index):
@@ -230,13 +236,17 @@ def Usage(out):
                       to all titles where the subtitle contains
                       the string you provide. Updates metadata if
                       found.
+  autofixtitle <title>
+                    : the automatic version of titlesubtitlefix.
+                      Use if you are sure you know what you are
+                      doing!
 """)
 
   out.write('\n\nAdditionally, you can use these global flags:%s\n' % FLAGS)
   sys.exit(1)
 
 
-def main(argv, out=sys.stdout):
+def main(argv, out=color):
   # Parse flags
   try:
     argv = FLAGS(argv)
@@ -256,6 +266,18 @@ def main(argv, out=sys.stdout):
     db.WriteSetting('uploadrate', FLAGS.defaultuploadrate)
     print ('Updated default bittorrent upload rate to %s'
            % FLAGS.defaultuploadrate)
+
+  # Update the default max download time for bittorrent if set
+  if FLAGS.downloadtime:
+    db.WriteSetting('downloadtime', FLAGS.downloadtime)
+    print ('Updated default bittorrent download time to %s'
+           % FLAGS.downloadtime)
+
+  # Update the default max wait time for bittorrent if set
+  if FLAGS.startuptime:
+    db.WriteSetting('startuptime', FLAGS.startuptime)
+    print ('Updated default bittorrent start up time to %s'
+           % FLAGS.startuptime)
 
   # Make sure the data directory exists
   datadir = db.GetSettingWithDefault('datadir', FLAGS.datadir)
@@ -303,7 +325,7 @@ def main(argv, out=sys.stdout):
       xmlfile = proxy.Open(argv[2], out=out)
       syndication.Sync(db, xmlfile, argv[3], out=out)
     else:
-      out.write('Not enough arguments, please ensure you specify all values\n')
+      out.write('Not enough arguments, please ensure you specify all values\n', RED)
 
   elif argv[1] == 'file':
     # Treat the local file as an RSS feed. Populates a TODO list in
@@ -526,21 +548,12 @@ def main(argv, out=sys.stdout):
 
   elif argv[1] == 'statistics' or argv[1] == 'stats':
     # Display some simple stats about the state of MythMYTHNETTV
-#    row = db.GetOneRow('select count(guid) from mythnettv_programs;')
-#    out.write('Programs tracked: %d\n' % row['count(guid)'])
-#
-#    for show in db.GetRows('select distinct(title) from mythnettv_programs '
-#                           'where title is not NULL;'):
-#      row = db.GetOneRow('select count(guid) from mythnettv_programs where '
-#                         'title = "%s";' % show['title'])
-#      out.write('  %s: %d\n' %(show['title'], row['count(guid)']))
-#    out.write('\n')
     
     row = db.GetOneRow('select count(guid) from mythnettv_programs where '
                        'download_finished is NULL and title is not NULL '
                        'and inactive is NULL;')
     out.write('Programs still to download: %d\n'
-              % row['count(guid)'])
+              % row['count(guid)'], BLUE)
 
     for show in db.GetRows('select distinct(title) from mythnettv_programs '
                            'where title is not NULL and '
@@ -747,8 +760,8 @@ you want to do this?\n\n""")
 
   elif argv[1] == 'autofixtitle':
     row = db.GetRows('SELECT subtitle FROM recorded where title LIKE "%s";' % argv[2])    
-    p = re.compile(r'(.*)\ [0-9]of[0-9]\ .*')
-    p2 = re.compile(r'(.*)\ ([0-9][0-9][0-9][0-9])\ (.*)')
+    p = re.compile(r'(.*)\ [0-9]of[0-9].*')
+    p2 = re.compile(r'(.*)\ ([0-9][0-9][0-9][0-9])(.*)')
     if row:
       for item in row:
         try:

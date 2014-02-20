@@ -15,6 +15,7 @@ import time
 import re
 import stat
 import notification
+import database
 
 #TransmisionClient
 #import TransmissionClient
@@ -52,6 +53,7 @@ def Download(torrent_filename, tmpname, info_func,
      upload_rate:      (int)      limit the upload speed
      verbose:          (boolean)  dump a bunch of debug info as well
   """
+  db = database.MythNetTvDatabase() # required to get settings
   tkey = -1  
   dir = tmpname
   if FLAGS.verbose:
@@ -123,6 +125,8 @@ def Download(torrent_filename, tmpname, info_func,
   # tell transmission to change the upload rate to the one we got from the database
   tc.change(tkey, uploadLimit=upload_rate, uploadLimited=True)
   stalecounter = 0
+  downloadtime = db.GetSetting('downloadtime') * 60
+  startuptime = db.GetSetting('startuptime') * 60
   try:
     start_time = datetime.datetime.now()
     while (not download_ok) or (not exit):
@@ -141,7 +145,7 @@ def Download(torrent_filename, tmpname, info_func,
       if tupdate.progress == 0:
         out.write('\r Have waited %s for download to start.'
                   %(time.strftime('%H:%M:%S', time.gmtime(wait_time.seconds))))
-        if wait_time.seconds > 240:
+        if wait_time.seconds > startuptime:
           out.write(' Giving up.\n')
           break
       # print the percent of download done if download started
@@ -155,7 +159,7 @@ def Download(torrent_filename, tmpname, info_func,
           stalecounter = stalecounter + 1
           out.write('.')
       # make sure downloads don't hang arround for too long
-      if tupdate._fields['eta'].value > 7200 and wait_time.seconds > 600:
+      if tupdate._fields['eta'].value > downloadtime and wait_time.seconds > 600:
         out.write('\nDownload will take more than 2 hours.. stopping and removing\n')
         tc.remove(tkey, delete_data=True, timeout=None) # remove from transmission and delete data
         return 0
