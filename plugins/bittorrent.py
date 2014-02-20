@@ -125,8 +125,11 @@ def Download(torrent_filename, tmpname, info_func,
   # tell transmission to change the upload rate to the one we got from the database
   tc.change(tkey, uploadLimit=upload_rate, uploadLimited=True)
   stalecounter = 0
-  downloadtime = db.GetSetting('downloadtime') * 60
-  startuptime = db.GetSetting('startuptime') * 60
+  downloadtime = int(db.GetSetting('downloadtime')) * 60
+  startuptime = int(db.GetSetting('startuptime')) * 60
+  if FLAGS.verbose:
+    out.write('Max startup seconds: %i. Max download seconds: %i\n' %(startuptime, downloadtime))
+    
   try:
     start_time = datetime.datetime.now()
     while (not download_ok) or (not exit):
@@ -141,6 +144,7 @@ def Download(torrent_filename, tmpname, info_func,
         break
       # keep our own time since started
       wait_time = datetime.datetime.now() - start_time
+
       # kill download if it does not start after a few minutes
       if tupdate.progress == 0:
         out.write('\r Have waited %s for download to start.'
