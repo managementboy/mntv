@@ -353,6 +353,7 @@ class MythNetTvProgram:
   def Download(self, datadir, force_proxy=None, force_budget=-1, out=sys.stdout):
     """Download -- download the show"""
 
+    #to-do: where the f%ck is this being used?
     one_hour = datetime.timedelta(hours=1)
     if self.persistant['url'].endswith('torrent') \
       or self.persistant.get('mime_type', '').endswith('torrent'):
