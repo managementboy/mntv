@@ -71,33 +71,32 @@ def Download(torrent_filename, tmpname, info_func,
     out.write('Now fetching the bittorrent data\n')
   download_ok = False
   exit = False
-  
-  if torrent_filename.endswith('torrent'):
-    #try to unzip any torrent file... seems standard now
-    try:
-      m=magic.open(magic.MAGIC_MIME)
-      m.load()
-      if 'x-gzip' in m.file(torrent_filename):
-        filetmp = torrent_filename+'.gz'
-        os.rename(torrent_filename,filetmp)
-        f_in = gzip.open(filetmp, 'rb')
-        f_out = open(torrent_filename, 'wb')
-        f_out.writelines(f_in)
-        f_out.close()
-        f_in.close()
-        os.remove(filetmp)
-        if FLAGS.verbose:
-          out.write('  Torrent file unzipped\n') 
-    except:
-      if FLAGS.verbose:
-        out.write('  Torrent file not gzipped or error unzipping\n')  
-    torrent_file = open(torrent_filename)
-    
-    metainfo = bencode.bdecode(torrent_file.read())
-    info = metainfo['info']
-  else:
+ 
+  if torrent_filename.startswith("magnet"):
     # if magnet we only need the hash
     info = re.search('btih:([a-zA-Z\d]{40})', torrent_filename).group(1)
+  else: 
+    m=magic.open(magic.MAGIC_MIME)
+    m.load()
+    if 'x-gzip' in m.file(torrent_filename):
+      if not torrent_filename.endswith('gz'):
+        filetmp = torrent_filename+'.gz'
+      os.rename(torrent_filename,filetmp)
+      f_in = gzip.open(filetmp, 'rb')
+      f_out = open(torrent_filename, 'wb')
+      f_out.writelines(f_in)
+      f_out.close()
+      f_in.close()
+      os.remove(filetmp)
+      if FLAGS.verbose:
+        out.write('  Torrent file gunzipped\n') 
+      torrent_file = open(torrent_filename)
+      metainfo = bencode.bdecode(torrent_file.read())
+      info = metainfo['info']
+    elif 'x-bittorrent' in m.file(torrent_filename):
+      torrent_file = open(torrent_filename)
+      metainfo = bencode.bdecode(torrent_file.read())
+      info = metainfo['info']
     
   #open a transmission connection called tc
   try:
