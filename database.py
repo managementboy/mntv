@@ -135,7 +135,7 @@ class MythNetTvDatabase:
     except Exception, e:
       print 'Could not connect to the MySQL server: %s' % e
       sys.exit(1)
-
+    self.db_connection.autocommit(True)
   def TableExists(self, table):
     """TableExists -- check if a table exists"""
 
