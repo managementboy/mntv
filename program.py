@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # Copyright (C) Michael Still (mikal@stillhq.com) 2006, 2007, 2008, 2009
-# Copyright (C) Elkin Fricke (elkin@elkin.de) 2011, 2012
+# Copyright (C) Elkin Fricke (elkin@elkin.de) 2011, 2012, 2013, 2014
 # Released under the terms of the GNU GPL v2
 
 import commands
@@ -32,6 +32,8 @@ import gmail
 import notification
 
 import UnRAR2
+
+from datetime import timedelta
 
 # Note that plugins aren't actually plugins at the moment, and that flags
 # parsing will be a problem for plugins when we get there (I think).
@@ -310,6 +312,19 @@ class MythNetTvProgram:
     shutil.move(datadir + '/stream.dump', filename)
     return os.stat(filename)[ST_SIZE]
 
+  def DownloadAVconv(self, filename):
+    """Downloadm3u8 -- download a show using avconv"""
+    datadir = self.db.GetSettingWithDefault('datadir', FLAGS.datadir)
+    (status, out) = commands.getstatusoutput('cd %s; '
+                                            'avconv -i "%s" -c copy stream.mkv'
+                                            %(datadir,
+                                              self.persistant['url']))
+    if status != 0:
+      raise DownloadException('MPlayer download failed')
+
+    shutil.move(datadir + '/stream.mkv', filename)
+    return os.stat(filename)[ST_SIZE]
+
   def DownloadHTTP(self, filename, force_proxy=None, force_budget=-1,
                   out=sys.stdout):
     """DownloadHTTP -- download a show, using HTTP"""
@@ -529,6 +544,10 @@ class MythNetTvProgram:
       total = streamingsites.Download('YouTube', youtubeid, datadir)
       out.write('%s/n' % total)
       self.persistant['filename'] = total
+      
+    elif self.persistant['url'].endswith('m3u8'):
+      total = self.DownloadAVconv(filename)
+      out.write('%s/n' % total)
 
     elif self.persistant['url'].startswith('http://'):
       total = self.DownloadHTTP(filename, force_proxy=force_proxy,
@@ -634,7 +653,7 @@ class MythNetTvProgram:
       if FLAGS.verbose:
 	out.write('  Using database time as timestamp for recording\n')
     except:
-      start = datetime.datetime.utcnow()
+      start = datetime.datetime.now()
       if FLAGS.verbose:
 	out.write('  Using now as timestamp for recording - %s\n' % start)
       
@@ -874,18 +893,25 @@ class MythNetTvProgram:
       new_rec = Recorded().create(tmp_recorded)
       # add recordedprogram information using the MythTV python bindings 
       new_recprog = RecordedProgram().create(tmp_recorded)
+      new_oldrec = OldRecorded().create(tmp_recorded)
     except:
-      start = datetime.datetime.utcnow()
+      start = datetime.datetime.now()
       tmp_recorded[u'starttime'] = start
       new_rec = Recorded().create(tmp_recorded)
       # add recordedprogram information using the MythTV python bindings 
       new_recprog = RecordedProgram().create(tmp_recorded) 
+      new_oldrec = OldRecorded().create(tmp_recorded)
 
+    #bug! the python bindings do not parse the chanid and start time to _refdat correcty. 
+    #     do it manually. Needs to be corrected!!
+    fixedstart = start + timedelta(hours=-2)
+    new_rec.markup._refdat = (chanid,fixedstart)
+    # just to see how the _refdat is wrong:
+    #print(new_rec.markup._refdat)
     #if we can get the right aspect ratio store it to maruptable
     if vid.height() and vid.width():
       new_rec.markup.add(1,aspectType(self, vid.height(), vid.width(), chanid, start), None) 
     # if the height and/or width of the recording is known, store it in the markuptable
-
     if vid.height():
       if FLAGS.verbose:
 	out.write('  Storing height: %s\n' % vid.height())
@@ -894,6 +920,7 @@ class MythNetTvProgram:
       if FLAGS.verbose:
 	out.write('  Storing width: %s\n' % vid.width())
       new_rec.markup.add(1,30,vid.width())
+
     # and now store markup to database
     new_rec.update()    
 
@@ -1074,11 +1101,13 @@ class MythNetTvProgram:
                       % (newtitle, newtitle, oldtitle))
 
   def sefix(self, title, out=sys.stdout):
-    """sepfix -- fix the season and episode data by trying to guess it from subtitle """
+    """sefix -- fix the season and episode data by trying to guess it from subtitle """
     #loop for all recordings in the database that have the same show name
     for row in self.db.GetRows('SELECT title, subtitle, basename FROM recorded WHERE title LIKE "%s";' % (title)):
       try:
         se = series.ExtractSeasonEpisode(row['subtitle'])
+        if FLAGS.verbose:
+          out.write("Season: %s Episode: %s\n" %(se[0], se[1]))
         self.db.ExecuteSql ('update recorded set season=%s, episode=%s WHERE basename = "%s";' % (se[0], se[1], row['basename']))
       except:
         out.write('Season and episode information could not be found in %s \n' % row['subtitle'])

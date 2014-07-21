@@ -226,6 +226,23 @@ def Sync(db, xmlfile, title, out=sys.stdout):
                out=out)
         done = True
 
+    if not done and entry.has_key('link'):
+      if FLAGS.verbose:
+        out.write('Link found: %s' %(entry['link']))
+      if entry['link'].endswith('m3u8'):
+	if FLAGS.verbose:
+	  out.write('    Warning: this seems to be a m3u8 stream\n')
+	Download(db,
+               entry['link'],
+               utility.hashtitlesubtitle(title, subtitle),
+               'application/x-mpegurl',
+               title,
+               subtitle,
+               description,
+               date,
+               date_parsed,
+               out=out)
+        done = True
     
      # handle youtube rss feeds
     if not done and entry['link'].startswith('http://www.youtube') or entry['link'].startswith('https://www.youtube'):

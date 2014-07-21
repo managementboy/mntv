@@ -756,7 +756,7 @@ you want to do this?\n\n""")
   elif argv[1] == 'sefix':
     title = GetPossible(argv, 2)
     prog = program.MythNetTvProgram(db)
-    prog.sepfix(title)
+    prog.sefix(title)
 
   elif argv[1] == 'autofixtitle':
     row = db.GetRows('SELECT subtitle FROM recorded where title LIKE "%s";' % argv[2])    
