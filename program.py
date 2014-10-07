@@ -320,7 +320,7 @@ class MythNetTvProgram:
                                             %(datadir,
                                               self.persistant['url']))
     if status != 0:
-      raise DownloadException('MPlayer download failed')
+      raise DownloadException('avconv download failed')
 
     shutil.move(datadir + '/stream.mkv', filename)
     return os.stat(filename)[ST_SIZE]

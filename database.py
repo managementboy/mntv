@@ -576,13 +576,13 @@ class MythNetTvDatabase:
     if self.version == '18':
       self.Log('Upgrading schema from 18 to 19')
       self.db_connection.query('create table mythnettv_category '
-                               '(title text, category varchar(64));')
+                               '(title text, category varchar(64)) ENGINE = MYISAM;')
       self.version = '19'
 
     if self.version == '19':
       self.Log('Upgrading schema from 19 to 20')
       self.db_connection.query('create table mythnettv_group '
-                               '(title text, recgroup varchar(32));')
+                               '(title text, recgroup varchar(32)) ENGINE = MYISAM;')
       self.version = '20'
 
     if self.version == '20':
