@@ -611,7 +611,7 @@ class MythNetTvDatabase:
     if self.version == '23':
       self.Log('Upgrading schema from 23 to 24')
       self.db_connection.query('alter table mythnettv_programs '
-                               'ADD INDEX ( title( 256 ) , subtitle( 265 ) );')
+                               'ADD INDEX ( title( 256 ) , subtitle( 256 ) );')
       self.version = '24'
 
     if self.version != CURRENT_SCHEMA:
