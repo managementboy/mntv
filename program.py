@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#/usr/bin/python
 
 # Copyright (C) Michael Still (mikal@stillhq.com) 2006, 2007, 2008, 2009
 # Copyright (C) Elkin Fricke (elkin@elkin.de) 2011, 2012, 2013, 2014
@@ -316,13 +316,13 @@ class MythNetTvProgram:
     """Downloadm3u8 -- download a show using avconv"""
     datadir = self.db.GetSettingWithDefault('datadir', FLAGS.datadir)
     (status, out) = commands.getstatusoutput('cd %s; '
-                                            'avconv -i "%s" -c copy stream.mkv'
+                                            'avconv -i "%s" -c copy stream.avi'
                                             %(datadir,
                                               self.persistant['url']))
     if status != 0:
       raise DownloadException('avconv download failed')
 
-    shutil.move(datadir + '/stream.mkv', filename)
+    shutil.move(datadir + '/stream.avi', filename)
     return os.stat(filename)[ST_SIZE]
 
   def DownloadHTTP(self, filename, force_proxy=None, force_budget=-1,
@@ -904,10 +904,11 @@ class MythNetTvProgram:
 
     #bug! the python bindings do not parse the chanid and start time to _refdat correcty. 
     #     do it manually. Needs to be corrected!!
-    fixedstart = start + timedelta(hours=-2)
-    new_rec.markup._refdat = (chanid,fixedstart)
+    fixedstart = start + timedelta(seconds=time.timezone) # Fix for database correcting timezone
+    new_rec.markup._refdat = (chanid, fixedstart.strftime("%Y-%m-%d %H:%M:%S"))
     # just to see how the _refdat is wrong:
-    #print(new_rec.markup._refdat)
+    if FLAGS.verbose:
+        print(new_rec.markup._refdat)
     #if we can get the right aspect ratio store it to maruptable
     if vid.height() and vid.width():
       new_rec.markup.add(1,aspectType(self, vid.height(), vid.width(), chanid, start), None) 
@@ -921,6 +922,7 @@ class MythNetTvProgram:
 	out.write('  Storing width: %s\n' % vid.width())
       new_rec.markup.add(1,30,vid.width())
 
+    new_rec.markup.commit()
     # and now store markup to database
     new_rec.update()    
 
@@ -1128,13 +1130,14 @@ class MythNetTvProgram:
         out.write('')
       else:
         try:
-          out.write('Updating aspect for show %s : %s... %s\n' % (row['title'], row['subtitle'],row['starttime']))
+          out.write('Updating aspect for show %s %s\n' % (row['chanid'], row['starttime']))
           filename = utility.findFullFile(row['basename'])
           vid = video_inspector.VideoInspector(filename)
-          old_rec = Recorded((row['chanid'], row['starttime'] + datetime.timedelta(hours=2)))
+          old_rec = Recorded(row['chanid'], row['starttime'])
           old_rec.markup.add(1,aspectType(self, vid.height(), vid.width(), row['chanid'], row['starttime']), None)
           old_rec.markup.add(1,31,vid.height())          
           old_rec.markup.add(1,30,vid.width())
           old_rec.update()
         except:
+          out.write('error fixing aspect ratios')
           pass
