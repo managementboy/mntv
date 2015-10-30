@@ -86,7 +86,7 @@ YouTube RSS feeds
 RSS channel feeds can be used as a source for videos. All you need is to
 modify the following command changing the name between user/ and /videos.rss:
 
-mythnettv subscribe "http://www.youtube.com/rss/user/richarddawkinsdotnet/videos.rss" \
+mythnettv subscribe "https://www.youtube.com/feeds/videos.xml?user=richarddawkinsdotnet" \
 "Richard Dawkins Foundation TV" "203891" "666" "Default"
 
 Running from a remote machine
