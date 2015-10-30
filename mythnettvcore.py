@@ -162,10 +162,18 @@ def Update(out, title=None):
     if FLAGS.verbose:
       out.write('Updating: %s\n' % row['url'])
 
-    try:
+    if row['url'].startswith('kickass'):
+    	out.write('kickass\n')
+    	syndication.Kickass(db, row['url'], row['title'], out=out)
+    else:
+
+#      try:
       proxy = proxyhandler.HttpHandler(db)
       xmlfile = proxy.Open(row['url'], out=out)
       syndication.Sync(db, xmlfile, row['title'], out=out)
 
-    except Exception, e:
-      out.write('Failed to update %s: %s\n' %(row['url'], e), RED)
+      #except Exception, e:
+       # out.write('Failed to update %s: %s\n' %(row['url'], e), RED)
+      
+      
+      

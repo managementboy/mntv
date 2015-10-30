@@ -291,3 +291,10 @@ def getBiggestSG():
       mylist[i.path]=i.freespace
   #return only a string of the largest SG
   return str(max(mylist.iterkeys(), key=lambda k: mylist[k]))
+
+
+def removeAfter(string, suffix):
+    try: 
+      return string[:string.index(suffix) + len(suffix)]
+    except:
+      return string

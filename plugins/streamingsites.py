@@ -27,7 +27,7 @@ def Download(site, identifier, datadir):
   download = subprocess.Popen(['/usr/bin/youtube-dl', '--restrict-filenames', identifier], stdout=subprocess.PIPE)
   while download_ok == False:
     out = download.stdout.read(1)
-#    filename = re.match('[download] Destination:.*', out)
+    #filenamemerge = re.match('[ffmpeg] Merging formats into ".*"', out)
     if out == '' and download.poll() != None:
       download_ok = True
     if out != '':
@@ -41,5 +41,9 @@ def Download(site, identifier, datadir):
   time.sleep(3)
   filename = filename.stdout.read()
   filename = filename.rstrip()
+  if os.path.isfile(filename):
+    return filename 
+  (root, ext) = os.path.splitext(filename)
+  filename = root + '.mkv'
   if os.path.isfile(filename):
     return filename 

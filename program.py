@@ -518,6 +518,13 @@ class MythNetTvProgram:
       total = streamingsites.Download('YouPorn', xvideoid, datadir)
       self.persistant['filename'] = total
 
+    # deal with ZDF downloads
+    elif self.persistant['url'].startswith('http://www.zdf'):
+      xvideoid = self.persistant['url']
+      out.write('ZDFID:     %s\n' % xvideoid)
+      total = streamingsites.Download('ZDF', xvideoid, datadir)
+      self.persistant['filename'] = total
+
     # deal with TeamCoco downloads
     elif self.persistant['url'].startswith('http://teamcoco'):
       xvideoid = self.persistant['url']
@@ -807,14 +814,19 @@ class MythNetTvProgram:
     filestats = os.stat('%s/%s' %(videodir, dest_file))
     self.persistant['size'] = filestats [stat.ST_SIZE]
     
-    if not self.persistant['description']:
+    try: 
+      if not self.persistant['description']:
+        self.persistant['description'] = ''
+        if FLAGS.verbose:
+          out.write('Empty description field\n')
+      if not self.persistant['subtitle']:
+        if FLAGS.verbose:
+          out.write('Empty subtitle field\n')
+        self.persistant['subtitle'] = ''
+    except:
       self.persistant['description'] = ''
-      if FLAGS.verbose:
-	out.write('Empty description field\n')
-    if not self.persistant['subtitle']:
-      if FLAGS.verbose:
-	out.write('Empty subtitle field\n')
       self.persistant['subtitle'] = ''
+      pass
       
     # add the recording to the database using the MythTV python bindings
     tmp_recorded={} # we need a place to store
@@ -834,7 +846,7 @@ class MythNetTvProgram:
     tmp_recorded[u'basename'] = dest_file
     tmp_recorded[u'filesize'] = self.persistant['size']
     tmp_recorded[u'lastmodified'] = datetime.datetime.utcnow()
-    tmp_recorded[u'hostname'] = socket.gethostname()
+#    tmp_recorded[u'hostname'] = socket.gethostname()
 
 
     # If Recgroup add to database
@@ -904,7 +916,8 @@ class MythNetTvProgram:
 
     #bug! the python bindings do not parse the chanid and start time to _refdat correcty. 
     #     do it manually. Needs to be corrected!!
-    fixedstart = start + timedelta(seconds=time.timezone) # Fix for database correcting timezone
+    #fixedstart = datetime.datetime.fromtimestamp(time.mktime(time.gmtime(time.mktime(start.timetuple()))))
+    fixedstart = start + 1 * timedelta(seconds=time.timezone) # Fix for database correcting timezone
     new_rec.markup._refdat = (chanid, fixedstart.strftime("%Y-%m-%d %H:%M:%S"))
     # just to see how the _refdat is wrong:
     if FLAGS.verbose:
