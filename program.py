@@ -518,6 +518,13 @@ class MythNetTvProgram:
       total = streamingsites.Download('YouPorn', xvideoid, datadir)
       self.persistant['filename'] = total
 
+    # deal with Comedians in CArs downloads
+    elif self.persistant['url'].startswith('http://comediansincars'):
+      videoid = self.persistant['url']
+      out.write('CommediansID:     %s\n' % videoid)
+      total = streamingsites.Download('', videoid, datadir)
+      self.persistant['filename'] = total
+
     # deal with ZDF downloads
     elif self.persistant['url'].startswith('http://www.zdf'):
       xvideoid = self.persistant['url']

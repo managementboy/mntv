@@ -17,6 +17,10 @@ import gflags
 import mythnettvcore
 import program
 import utility
+import series
+
+# for Kickass
+from KickassAPI import Search, Latest, User, CATEGORY, ORDER
 
 
 # Define command line flags
@@ -78,6 +82,119 @@ def GuessMimeType(url):
   if url.endswith('m4v'):
     return 'video/x-m4v'
   return 'video/x-unguessable'
+  
+import dateutil.parser as dparser
+def Kickass(db, searchterms, title, out=sys.stdout):
+  """Kickass -- get entries from Kickass via api"""
+  
+  searchterms = searchterms.replace('kickass ','')
+  
+  kickassentries = Search(searchterms).order(ORDER.SEED)
+
+  for entry in kickassentries:
+    done = False
+
+    try: 
+      showdate = series.ExtractDate(entry.name) #extract just the date from a show
+      showsubtitle = showdate[0] + '.' + showdate[1] + '.' + showdate[2] # now format right for subtitle
+
+      date = datetime.datetime.now() #date for database
+      date_parsed = datetime.datetime.now()
+      time.sleep(1) # make sure every entry has a unique date
+      #check if this item has been added once before
+      if db.GetOneRow('select title from mythnettv_programs where guid="%s";' % utility.hashtitlesubtitle(title, showsubtitle)):
+        if FLAGS.verbose:
+          out.write('   Dupicate detected in GUID: %s\n' % utility.hashtitlesubtitle(title, showsubtitle))
+      else:
+        Download(db,
+             entry.magnet_link,
+             utility.hashtitlesubtitle(title, showsubtitle),
+             'application/x-bittorrent',
+             title,
+             showsubtitle,
+             '',
+             date,
+             date_parsed, 
+             out=out)
+    except:
+      pass
+
+    try: 
+      showdate = series.ExtractSeasonEpisode(entry.name)
+      if (showdate[0] < 10):
+        if (showdate[1] < 10):
+          showsubtitle = 'S0' + str(showdate[0]) + 'E0' + str(showdate[1])
+        else:
+          showsubtitle = 'S0' + str(showdate[0]) + 'E' + str(showdate[1])
+      else:
+        if (showdate[1] < 10):
+          showsubtitle = 'S' + str(showdate[0]) + 'E0' + str(showdate[1])
+        else:
+          showsubtitle = 'S' + str(showdate[0]) + 'E' + str(showdate[1])
+
+      date_parsed = datetime.datetime.now()
+      date = date_parsed
+      time.sleep(1) # make sure every entry has a unique date
+
+      if db.GetOneRow('select title from mythnettv_programs where guid="%s";' % utility.hashtitlesubtitle(title, showsubtitle)):
+        if FLAGS.verbose:
+          out.write('   Dupicate detected in GUID: %s\n' % utility.hashtitlesubtitle(title, showsubtitle))
+      else:
+        Download(db,
+             entry.magnet_link,
+             utility.hashtitlesubtitle(title, showsubtitle),
+             'application/x-bittorrent',
+             title,
+             showsubtitle,
+             '',
+             date,
+             date_parsed, 
+             out=out)
+    except:
+      pass
+
+
+def json(db, url, title, out=sys.stdout):
+  """json -- try to guess some standard json values. Works with comedians in cars. Can be expaned"""
+  
+  url = url.replace('json ','')
+#  url = "https://api.import.io/store/connector/e8110139-b10f-4bbe-bd66-903490d6c6f7/_query?input=webpage/url:http%3A%2F%2Fcomediansincarsgettingcoffee.com%2F&&_apikey=51a4bcc0babd453889e8fc0312ef1dfd143f0b13aacc6c5567ed7f5f9d37381329c2c590111e6c4dd8c1358c39955a1e6b4561391c5d14a9c30bc5b07e1610f17af37a9124485dd78ecee7f7d6db4dcd"
+  import urllib, json
+  response = urllib.urlopen(url)
+  data = json.loads(response.read())
+
+  for entry in data['results']:
+    done = False
+
+    #try:
+    showsubtitle = entry['typevideonum_value'].replace(" ", "") + ' ' + entry['typevideotitle_value']
+    date = datetime.datetime.now() #date for database
+    date_parsed = datetime.datetime.now()
+    time.sleep(1) # make sure every entry has a unique date
+      #check if this item has been added once before
+    if db.GetOneRow('select title from mythnettv_programs where guid="%s";' % utility.hashtitlesubtitle(title, showsubtitle)):
+      if FLAGS.verbose:
+        out.write('   Dupicate detected in GUID: %s\n' % utility.hashtitlesubtitle(title, showsubtitle))
+    else:
+      Download(db,
+             entry['vid_link'],
+             utility.hashtitlesubtitle(title, showsubtitle),
+             'application/x-shockwave-flash',
+             title,
+             showsubtitle,
+             '',
+             date,
+             date_parsed, 
+             out=out)
+      done = True
+    #except:
+    #  pass
+
+
+
+    #except:
+     #pass
+     
 
 
 def Sync(db, xmlfile, title, out=sys.stdout):
@@ -107,10 +224,11 @@ def Sync(db, xmlfile, title, out=sys.stdout):
   xml = ''.join(lines)
   parser = feedparser.parse(xml)
 
-
-
+  
+  
   # Find the media:content entries
   for entry in parser.entries:
+
     # detect feedparser version
     try:                                       # feedparser >= 5.1.1 
       date = entry.published                  # publication date of entry 
@@ -129,13 +247,14 @@ def Sync(db, xmlfile, title, out=sys.stdout):
       description = utility.massageDescription(entry.description)
     except:
       description = ''
-
+    
     subtitle = entry.title
 
 #    if entry.has_key('media_description'):
 #      description = utility.massageDescription(entry['media_description'])
      
     # Enclosures
+    #out.write(entry)
     if entry.has_key('enclosures'):
       for enclosure in entry.enclosures:
         try:
@@ -189,7 +308,7 @@ def Sync(db, xmlfile, title, out=sys.stdout):
                  out=out)
         done = True
 
-        
+
     if not done and entry.has_key('link'):
       if FLAGS.verbose:
         out.write('Link found: %s' %(entry['link']))
@@ -248,6 +367,22 @@ def Sync(db, xmlfile, title, out=sys.stdout):
     if not done and entry['link'].startswith('http://www.youtube') or entry['link'].startswith('https://www.youtube'):
       if FLAGS.verbose:
         out.write(' Warning: looks like a YouTube video link\n')
+      Download(db,
+             entry['link'],
+             utility.hashtitlesubtitle(title, subtitle),
+             'application/x-shockwave-flash',
+             title,
+             subtitle,
+             description,
+             date,
+             date_parsed,
+             out=out)
+      done = True
+
+    # handle ZDF rss feeds
+    if not done and entry['link'].startswith('http://www.zdf'):
+      if FLAGS.verbose:
+        out.write(' Warning: looks like a ZDF Mediathek link\n')
       Download(db,
              entry['link'],
              utility.hashtitlesubtitle(title, subtitle),

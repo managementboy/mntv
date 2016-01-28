@@ -165,6 +165,9 @@ def Update(out, title=None):
     if row['url'].startswith('kickass'):
     	out.write('kickass\n')
     	syndication.Kickass(db, row['url'], row['title'], out=out)
+    elif row['url'].startswith('json'):
+    	out.write('json\n')
+    	syndication.json(db, row['url'], row['title'], out=out)
     else:
 
 #      try:
